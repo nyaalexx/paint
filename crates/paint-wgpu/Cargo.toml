@@ -1,0 +1,13 @@
+[package]
+name = "paint-wgpu"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+paint-core.path = "../paint-core"
+
+glam = { workspace = true, features = ["zerocopy"] }
+rand.workspace = true
+tracing.workspace = true
+wgpu.workspace = true
+zerocopy.workspace = true

@@ -1,16 +1,19 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
     utils.url = "github:numtide/flake-utils";
+
     fenix.url = "github:nix-community/fenix";
+    fenix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, utils, fenix }:
-    utils.lib.eachDefaultSystem (system:
+  outputs = inputs:
+    inputs.utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import inputs.nixpkgs { inherit system; };
 
-        rust-toolchain = with fenix.packages.${system};
+        rust-toolchain = with inputs.fenix.packages.${system};
           combine (with complete; [
             rustc
             rust-src
@@ -19,28 +22,24 @@
             rustfmt
             rust-analyzer
             miri
+            targets.aarch64-linux-android.latest.rust-std
           ]);
       in {
-        devShell = (pkgs.mkShell.override { stdenv = pkgs.clangStdenv; }) rec {
+          devShell = (pkgs.mkShell.override { stdenv = pkgs.clangStdenv; }) rec {
           buildInputs = with pkgs; [
             cargo-expand
             cargo-nextest
             clangStdenv
-            mold
             pkg-config
             rust-toolchain
             rustPlatform.bindgenHook
             heaptrack
             cargo-flamegraph
+            python3Minimal
+            wgsl-analyzer
           ];
 
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER = "${pkgs.llvmPackages.clangUseLLVM}/bin/clang";
-          RUSTFLAGS = builtins.concatStringsSep " " [
-            "-Clink-arg=-fuse-ld=${pkgs.mold}/bin/mold"
-            "-Zshare-generics=y"
-            "-Zthreads=0"
-          ];
           RUST_SRC_PATH = "${rust-toolchain}/lib/rustlib/src/rust/library";
           RUST_BACKTRACE = 1;
         };

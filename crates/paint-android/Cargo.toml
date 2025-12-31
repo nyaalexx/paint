@@ -1,0 +1,23 @@
+[package]
+name = "paint-android"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[target.'cfg(target_os = "android")'.dependencies]
+paint-behaviour.path = "../paint-behaviour"
+paint-core.path = "../paint-core"
+paint-wgpu.path = "../paint-wgpu"
+
+glam.workspace = true
+jni.workspace = true
+jni_fn.workspace = true
+ndk = { workspace = true, features = [ "nativewindow" ] }
+pollster.workspace = true
+tracing-logcat.workspace = true
+tracing-panic.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tracing.workspace = true
+wgpu.workspace = true
