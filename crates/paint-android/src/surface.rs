@@ -1,11 +1,9 @@
 use std::sync::{Arc, Mutex};
-use std::thread::JoinHandle;
 
 use ndk::native_window::NativeWindow;
 use wgpu::rwh::{HasDisplayHandle, HasWindowHandle};
 
 use crate::gpu::GpuContext;
-use crate::renderer::Renderer;
 
 pub mod ffi {
     use jni::JNIEnv;
@@ -13,6 +11,7 @@ pub mod ffi {
     use jni_fn::jni_fn;
 
     use super::*;
+
     #[unsafe(no_mangle)]
     #[jni_fn("site.nyaalex.paint.rust.Surface$Native")]
     pub fn create(env: JNIEnv, _this: JObject, gpu_ptr: usize, surface: JObject) -> usize {
@@ -39,15 +38,6 @@ pub mod ffi {
 
     #[unsafe(no_mangle)]
     #[jni_fn("site.nyaalex.paint.rust.Surface$Native")]
-    pub fn attachRenderer(_env: JNIEnv, _this: JObject, ptr: usize, renderer_ptr: usize) {
-        assert!(ptr != 0 && renderer_ptr != 0);
-        let surface = unsafe { &*(ptr as *const Arc<Surface>) };
-        let renderer = unsafe { &*(renderer_ptr as *const Arc<dyn Renderer>) };
-        Arc::clone(surface).attach_renderer(Arc::clone(renderer));
-    }
-
-    #[unsafe(no_mangle)]
-    #[jni_fn("site.nyaalex.paint.rust.Surface$Native")]
     pub fn destroy(_env: JNIEnv, _this: JObject, ptr: usize) {
         assert!(ptr != 0);
         let _surface = unsafe { Box::from_raw(ptr as *mut Arc<Surface>) };
@@ -64,8 +54,6 @@ pub struct Surface {
 
 /// Internal mutable state
 struct State {
-    renderer: Option<Arc<dyn Renderer>>,
-    render_thread: Option<JoinHandle<()>>,
     width: u32,
     height: u32,
     reconfigure_needed: bool,
@@ -89,8 +77,6 @@ impl Surface {
             surface,
             format,
             state: Mutex::new(State {
-                renderer: None,
-                render_thread: None,
                 width,
                 height,
                 reconfigure_needed: true,
@@ -143,7 +129,7 @@ impl Surface {
                 format: self.format,
                 width,
                 height,
-                present_mode: wgpu::PresentMode::AutoNoVsync,
+                present_mode: wgpu::PresentMode::AutoVsync,
                 desired_maximum_frame_latency: 1, // prioritizing latency
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                 view_formats: vec![self.format.add_srgb_suffix()],
@@ -151,75 +137,25 @@ impl Surface {
         );
     }
 
-    /// Attaches a renderer and starts the render thread.
-    pub fn attach_renderer(self: Arc<Self>, renderer: Arc<dyn Renderer>) {
-        self.detach_renderer();
+    pub fn render(&self, callback: impl FnOnce(&wgpu::Texture)) {
+        self.reconfigure();
 
-        let weak_surface = Arc::downgrade(&self);
-        let weak_renderer = Arc::downgrade(&renderer);
-
-        let render_thread = std::thread::spawn(move || {
-            loop {
-                let Some(renderer) = weak_renderer.upgrade() else {
-                    break;
-                };
-
-                let Some(surface) = weak_surface.upgrade() else {
-                    break;
-                };
-
-                // Reconfigure the surface if needed.
-                // It has to happen on the same thread as `get_current_texture` ideally
-                surface.reconfigure();
-
-                let surface_texture = match surface.surface.get_current_texture() {
-                    Ok(v) => v,
-                    Err(e) => {
-                        tracing::trace!("Frame acquisition error: {e}");
-                        continue;
-                    }
-                };
-
-                renderer.render(&surface_texture.texture);
-
-                surface_texture.present();
-
-                // This will block until the renderer decides to render the next frame (e.g.
-                // after user input), or when `renderer.stop()` is called
-                renderer.update();
+        let surface_texture = match self.surface.get_current_texture() {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::trace!("Frame acquisition error: {e}");
+                return; // skip this frame
             }
-        });
+        };
 
-        let mut state = self.state.lock().unwrap();
-
-        state.renderer = Some(renderer);
-        state.render_thread = Some(render_thread);
-    }
-
-    /// Stops the render thread and detaches the renderer.
-    fn detach_renderer(&self) {
-        let mut state = self.state.lock().unwrap();
-
-        if let Some(renderer) = state.renderer.take() {
-            renderer.interrupt();
-        }
-
-        if let Some(render_thread) = state.render_thread.take() {
-            // unlock mutex before attempting to join
-            drop(state);
-
-            // join only if we're not the render thread itself
-            if std::thread::current().id() != render_thread.thread().id() {
-                render_thread.join().unwrap();
-            }
-        }
+        callback(&surface_texture.texture);
+        surface_texture.present();
     }
 }
 
 impl Drop for Surface {
     fn drop(&mut self) {
         tracing::trace!("Destroying surface");
-        self.detach_renderer();
     }
 }
 

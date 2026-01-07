@@ -4,18 +4,18 @@ use glam::{Affine2, Vec2};
 use paint_core::presentation;
 use zerocopy::IntoBytes;
 
-use crate::context::Context;
+use crate::context::GlobalContext;
 use crate::texture::Texture;
 use crate::{FrameContext, bind_group_layouts, render_pipelines};
 
 #[derive(Debug)]
 pub struct ViewportRenderer {
-    context: Arc<Context>,
+    context: Arc<GlobalContext>,
     default_bind_group: wgpu::BindGroup,
 }
 
 impl ViewportRenderer {
-    pub fn new(context: Arc<Context>) -> Self {
+    pub fn new(context: Arc<GlobalContext>) -> Self {
         let default_bind_group = bind_group_layouts::single_sampled_texture::create_bind_group(
             &context.device,
             &context.bind_group_layouts,

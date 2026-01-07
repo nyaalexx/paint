@@ -1,3 +1,4 @@
+pub mod fullscreen_triangle;
 pub mod single_quad;
 pub mod stamped_brush;
 
@@ -10,6 +11,7 @@ use crate::{pipeline_layouts, shaders};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Key {
+    FullscreenTriangle,
     SingleQuad,
     StampedBrush,
 }
@@ -22,6 +24,9 @@ impl Key {
         pipeline_layouts: &pipeline_layouts::Storage,
     ) -> wgpu::RenderPipeline {
         match self {
+            Key::FullscreenTriangle => {
+                self::fullscreen_triangle::compile(device, shaders, pipeline_layouts)
+            }
             Key::SingleQuad => self::single_quad::compile(device, shaders, pipeline_layouts),
             Key::StampedBrush => self::stamped_brush::compile(device, shaders, pipeline_layouts),
         }

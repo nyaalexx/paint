@@ -4,10 +4,10 @@ use std::sync::Arc;
 use glam::{Affine2, Vec2};
 use zerocopy::IntoBytes as _;
 
-use crate::{Context, FrameContext, Texture, bind_group_layouts, render_pipelines};
+use crate::{FrameContext, GlobalContext, Texture, bind_group_layouts, render_pipelines};
 
 pub struct Compositor {
-    context: Arc<Context>,
+    context: Arc<GlobalContext>,
     pipeline: wgpu::RenderPipeline,
     canvas_texture_view: wgpu::TextureView,
     actions: VecDeque<Action>,
@@ -19,7 +19,7 @@ enum Action {
 }
 
 impl Compositor {
-    pub fn new(context: Arc<Context>) -> Self {
+    pub fn new(context: Arc<GlobalContext>) -> Self {
         let pipeline = context
             .render_pipelines
             .get(render_pipelines::Key::SingleQuad);
@@ -58,7 +58,7 @@ impl Compositor {
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                     store: wgpu::StoreOp::Store,
                 },
             })],
@@ -104,7 +104,7 @@ impl Compositor {
 
 impl paint_core::behaviour::Compositor for Compositor {
     type Texture = Texture;
-    type FrameContext = FrameContext;
+    type Context = FrameContext;
 
     fn put_texture(&mut self, texture: Self::Texture) {
         self.actions.push_back(Action::PutTexture(texture));

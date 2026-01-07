@@ -12,21 +12,14 @@ class Surface(gpu: GpuContext, surface: android.view.Surface) : Closeable {
 
         external fun resize(ptr: Long, width: Int, height: Int)
 
-        external fun attachRenderer(otr: Long, rendererPtr: Long)
-
         external fun destroy(ptr: Long)
     }
 
-    private var ptr: Long = Native.create(gpu.ptr, surface)
+    internal var ptr: Long = Native.create(gpu.ptr, surface)
 
     fun resize(width: Int, height: Int) {
         assert(ptr != 0L)
         Native.resize(ptr, width, height)
-    }
-
-    fun attachRenderer(renderer: Renderer) {
-        assert(ptr != 0L)
-        Native.attachRenderer(ptr, renderer.ptr)
     }
 
     override fun close() {

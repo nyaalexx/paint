@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{bind_group_layouts, pipeline_layouts, render_pipelines, shaders};
 
 #[derive(Debug)]
-pub struct Context {
+pub struct GlobalContext {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
     pub(crate) bind_group_layouts: Arc<bind_group_layouts::Storage>,
@@ -12,7 +12,7 @@ pub struct Context {
     pub(crate) default_sampler: wgpu::Sampler,
 }
 
-impl Context {
+impl GlobalContext {
     pub fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
         let shaders = Arc::new(shaders::Storage::new(device.clone()));
         let bind_group_layouts = Arc::new(bind_group_layouts::Storage::new(device.clone()));
@@ -49,11 +49,11 @@ pub struct FrameContext {
 }
 
 impl FrameContext {
-    pub fn new(ctx: &Context) -> Self {
+    pub fn new(ctx: &GlobalContext) -> Self {
         Self {
             encoder: ctx.device.create_command_encoder(&Default::default()),
         }
     }
 }
 
-impl paint_core::behaviour::FrameContext for FrameContext {}
+impl paint_core::behaviour::Context for FrameContext {}

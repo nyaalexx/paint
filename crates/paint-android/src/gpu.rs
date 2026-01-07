@@ -25,10 +25,8 @@ pub mod ffi {
     }
 }
 
-#[derive(Clone)]
 pub struct GpuContext {
-    pub context: Arc<paint_wgpu::Context>,
-
+    pub context: Arc<paint_wgpu::GlobalContext>,
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,
     pub device: wgpu::Device,
@@ -36,7 +34,7 @@ pub struct GpuContext {
 
 impl GpuContext {
     pub fn new() -> Self {
-        tracing::trace!("Creating a GPU context");
+        tracing::info!("Creating a GPU context");
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
 
@@ -47,7 +45,7 @@ impl GpuContext {
         let adapter = pollster::block_on(adapter_fut).unwrap();
 
         let info = adapter.get_info();
-        tracing::trace!("Adapter info: {info:#?}");
+        tracing::info!("Adapter info: {info:#?}");
 
         // Request the WGPU device
         let device_fut = adapter.request_device(&wgpu::DeviceDescriptor {
@@ -57,7 +55,7 @@ impl GpuContext {
         });
         let (device, queue) = pollster::block_on(device_fut).unwrap();
 
-        let context = Arc::new(paint_wgpu::Context::new(device.clone(), queue));
+        let context = Arc::new(paint_wgpu::GlobalContext::new(device.clone(), queue));
 
         Self {
             context,

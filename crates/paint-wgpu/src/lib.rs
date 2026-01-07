@@ -12,8 +12,9 @@ mod texture;
 
 pub use self::brush_engine::{BrushEngine, BrushStroke};
 pub use self::compositor::Compositor;
-pub use self::context::{Context, FrameContext};
-pub use self::renderer::ViewportRenderer;
+pub use self::context::{GlobalContext, FrameContext};
+pub use self::renderer::color_picker::ColorPickerRenderer;
+pub use self::renderer::viewport::ViewportRenderer;
 pub use self::texture::Texture;
 
 pub fn get_required_wgpu_features() -> wgpu::Features {

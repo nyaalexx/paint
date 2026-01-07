@@ -46,5 +46,5 @@ fn vertex(in: VertexInput) -> VertexOutput {
 fn fragment(v: VertexOutput) -> @location(0) vec4<f32> {
     let dist = length(v.rel_pos) - 0.5 * v.radius;
     let alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
-    return vec4(0.0, 0.0, 0.0, alpha * 0.1);
+    return vec4(1.0, 1.0, 1.0, alpha);
 }

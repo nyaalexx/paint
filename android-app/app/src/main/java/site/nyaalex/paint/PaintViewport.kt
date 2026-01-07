@@ -12,7 +12,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import site.nyaalex.paint.rust.Behaviour
 import site.nyaalex.paint.rust.Surface
-import site.nyaalex.paint.rust.ViewportRenderer
 import kotlin.math.absoluteValue
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -23,7 +22,7 @@ import kotlin.math.sqrt
 fun PaintViewport(modifier: Modifier = Modifier, viewModel: PaintViewModel = viewModel()) {
     AndroidView(
         factory = { context ->
-            InternalView(context)
+            PaintViewportView(context)
         },
         update = { view ->
             view.bind(viewModel)
@@ -32,7 +31,7 @@ fun PaintViewport(modifier: Modifier = Modifier, viewModel: PaintViewModel = vie
     )
 }
 
-private class InternalView(context: Context) : SurfaceView(context) {
+private class PaintViewportView(context: Context) : SurfaceView(context) {
     private var viewModel: PaintViewModel? = null
 
     fun bind(viewModel: PaintViewModel) {
@@ -43,17 +42,14 @@ private class InternalView(context: Context) : SurfaceView(context) {
         get() = viewModel?.behaviour
 
     private var surface: Surface? = null
-    private var renderer: ViewportRenderer? = null
 
     init {
         holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                viewModel?.let { viewModel ->
-                    surface = Surface(viewModel.gpu, holder.surface)
-                    renderer = ViewportRenderer(viewModel.gpu)
-                    surface!!.attachRenderer(renderer!!)
-                    viewModel.behaviour.attachRenderer(renderer!!)
-                }
+                val vm = viewModel ?: return
+                val newSurface = Surface(vm.gpu, holder.surface)
+                vm.behaviour.attachViewport(newSurface)
+                surface = newSurface
             }
 
             override fun surfaceChanged(
@@ -68,9 +64,6 @@ private class InternalView(context: Context) : SurfaceView(context) {
             override fun surfaceDestroyed(holder: SurfaceHolder) {
                 surface?.close()
                 surface = null
-
-                renderer?.close()
-                renderer = null
             }
         })
     }

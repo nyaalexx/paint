@@ -63,15 +63,14 @@ pub fn compile(
             compilation_options: Default::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                // blend: Some(wgpu::BlendState {
-                //     color: wgpu::BlendComponent::REPLACE,
-                //     alpha: wgpu::BlendComponent {
-                //         src_factor: wgpu::BlendFactor::One,
-                //         dst_factor: wgpu::BlendFactor::One,
-                //         operation: wgpu::BlendOperation::Max,
-                //     },
-                // }),
+                blend: Some(wgpu::BlendState {
+                    color: wgpu::BlendComponent::REPLACE,
+                    alpha: wgpu::BlendComponent {
+                        src_factor: wgpu::BlendFactor::One,
+                        dst_factor: wgpu::BlendFactor::One,
+                        operation: wgpu::BlendOperation::Max,
+                    },
+                }),
                 write_mask: wgpu::ColorWrites::all(),
             })],
         }),

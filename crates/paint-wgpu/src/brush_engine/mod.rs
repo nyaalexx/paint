@@ -7,17 +7,17 @@ use rand::{Rng, SeedableRng};
 use wgpu::util::DeviceExt;
 use zerocopy::IntoBytes as _;
 
-use crate::context::{Context, FrameContext};
+use crate::context::{FrameContext, GlobalContext};
 use crate::render_pipelines;
 use crate::render_pipelines::stamped_brush::{Immediates, Instance};
 use crate::texture::Texture;
 
 pub struct BrushEngine {
-    context: Arc<Context>,
+    context: Arc<GlobalContext>,
 }
 
 impl BrushEngine {
-    pub fn new(context: Arc<Context>) -> Self {
+    pub fn new(context: Arc<GlobalContext>) -> Self {
         Self { context }
     }
 }
@@ -31,7 +31,7 @@ impl paint_core::behaviour::BrushEngine for BrushEngine {
 }
 
 pub struct BrushStroke {
-    context: Arc<Context>,
+    context: Arc<GlobalContext>,
     render_pipeline: wgpu::RenderPipeline,
     preview_texture: wgpu::Texture,
     preview_texture_view: wgpu::TextureView,
@@ -42,7 +42,7 @@ pub struct BrushStroke {
 }
 
 impl BrushStroke {
-    pub fn new(context: Arc<Context>, settings: &StrokeSettings) -> Self {
+    pub fn new(context: Arc<GlobalContext>, settings: &StrokeSettings) -> Self {
         let render_pipeline = context
             .render_pipelines
             .get(render_pipelines::Key::StampedBrush);
@@ -79,13 +79,13 @@ impl BrushStroke {
 
 impl paint_core::behaviour::BrushStroke for BrushStroke {
     type Texture = Texture;
-    type FrameContext = FrameContext;
+    type Context = FrameContext;
 
     fn update(&mut self, state: &BrushState) {
         let radius = (state.pressure.powf(1.5) * 50.0).max(2.0);
 
         if let Some(prev_instance) = self.last_instance {
-            let spacing = radius * 0.1;
+            let spacing = radius * 0.05;
             let dir = state.position - prev_instance.pos;
             let dist = dir.length();
             if dist > spacing {

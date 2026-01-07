@@ -2,17 +2,18 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Weak};
 use std::thread::JoinHandle;
 
-use paint_core::behaviour::Event;
+use paint_core::behaviour::{Action, BrushState, Event};
+use paint_core::presentation;
+use paint_wgpu::Texture;
 
 use crate::gpu::GpuContext;
-use crate::renderer::ViewportRenderer;
+use crate::surface::Surface;
 
 pub mod ffi {
     use glam::{Affine2, UVec2, Vec2};
     use jni::JNIEnv;
     use jni::objects::JObject;
     use jni_fn::jni_fn;
-    use paint_core::behaviour::BrushState;
 
     use super::*;
 
@@ -88,10 +89,18 @@ pub mod ffi {
 
     #[unsafe(no_mangle)]
     #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
-    pub fn attachRenderer(_env: JNIEnv, _this: JObject, ptr: usize, renderer_ptr: usize) {
+    pub fn attachViewport(_env: JNIEnv, _this: JObject, ptr: usize, surface_ptr: usize) {
         let behaviour = unsafe { &*(ptr as *const Behaviour) };
-        let renderer = unsafe { &*(renderer_ptr as *const Arc<ViewportRenderer>) };
-        behaviour.attach_renderer(Arc::downgrade(renderer));
+        let surface = unsafe { &*(surface_ptr as *const Arc<Surface>) };
+        behaviour.attach_viewport(Arc::downgrade(surface));
+    }
+
+    #[unsafe(no_mangle)]
+    #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
+    pub fn attachColorPicker(_env: JNIEnv, _this: JObject, ptr: usize, surface_ptr: usize) {
+        let behaviour = unsafe { &*(ptr as *const Behaviour) };
+        let surface = unsafe { &*(surface_ptr as *const Arc<Surface>) };
+        behaviour.attach_color_picker(Arc::downgrade(surface));
     }
 
     #[unsafe(no_mangle)]
@@ -105,9 +114,9 @@ pub mod ffi {
 
 struct Impls;
 
-impl paint_behaviour::Impls for Impls {
+impl paint_core::behaviour::Impls for Impls {
     type Texture = paint_wgpu::Texture;
-    type FrameContext = paint_wgpu::FrameContext;
+    type Context = paint_wgpu::FrameContext;
     type Compositor = paint_wgpu::Compositor;
     type BrushEngine = paint_wgpu::BrushEngine;
     type BrushStroke = paint_wgpu::BrushStroke;
@@ -118,7 +127,8 @@ type BehaviourImpl = paint_behaviour::Behaviour<Impls>;
 #[derive(Debug, Clone)]
 enum Command {
     Stop,
-    AttachRenderer(Weak<ViewportRenderer>),
+    AttachViewport(Weak<Surface>),
+    AttachColorPicker(Weak<Surface>),
     HandleEvent(Event),
 }
 
@@ -132,12 +142,7 @@ impl Behaviour {
     pub fn new(gpu: &GpuContext) -> Self {
         let (command_sender, command_receiver) = mpsc::channel();
 
-        let context = gpu.context.clone();
-        let compositor = paint_wgpu::Compositor::new(context.clone());
-        let brush_engine = paint_wgpu::BrushEngine::new(context.clone());
-        let behaviour_impl = BehaviourImpl::new(compositor, brush_engine);
-
-        let behaviour_thread = BehaviourThread::new(command_receiver, behaviour_impl, context);
+        let behaviour_thread = BehaviourThread::new(gpu, command_receiver);
         let thread_handle = std::thread::spawn(move || behaviour_thread.run());
 
         Self {
@@ -150,8 +155,14 @@ impl Behaviour {
         let _ = self.command_sender.send(command);
     }
 
-    pub fn attach_renderer(&self, renderer: Weak<ViewportRenderer>) {
-        self.send_command(Command::AttachRenderer(renderer));
+    pub fn attach_viewport(&self, surface: Weak<Surface>) {
+        self.send_command(Command::AttachViewport(surface));
+        self.handle_event(Event::InvalidateViewport);
+    }
+
+    pub fn attach_color_picker(&self, surface: Weak<Surface>) {
+        self.send_command(Command::AttachColorPicker(surface));
+        self.handle_event(Event::InvalidateColorPicker);
     }
 
     pub fn handle_event(&self, event: Event) {
@@ -172,25 +183,33 @@ impl Drop for Behaviour {
 struct BehaviourThread {
     behaviour_impl: BehaviourImpl,
     command_receiver: Receiver<Command>,
-    context: Arc<paint_wgpu::Context>,
-    viewports: Vec<Weak<ViewportRenderer>>,
-    is_dirty: bool,
-    frame_context: Option<paint_wgpu::FrameContext>,
+    frame_context: LazyFrameContext,
+
+    viewport_renderer: paint_wgpu::ViewportRenderer,
+    viewport_surface: Option<Weak<Surface>>,
+
+    color_picker_renderer: paint_wgpu::ColorPickerRenderer,
+    color_picker_surface: Option<Weak<Surface>>,
 }
 
 impl BehaviourThread {
-    pub fn new(
-        command_receiver: Receiver<Command>,
-        behaviour_impl: BehaviourImpl,
-        context: Arc<paint_wgpu::Context>,
-    ) -> Self {
+    pub fn new(gpu: &GpuContext, command_receiver: Receiver<Command>) -> Self {
+        let context = gpu.context.clone();
+        let compositor = paint_wgpu::Compositor::new(context.clone());
+        let brush_engine = paint_wgpu::BrushEngine::new(context.clone());
+        let behaviour_impl = BehaviourImpl::new(compositor, brush_engine);
+
+        let viewport_renderer = paint_wgpu::ViewportRenderer::new(context.clone());
+        let color_picker_renderer = paint_wgpu::ColorPickerRenderer::new(context.clone());
+
         Self {
             behaviour_impl,
             command_receiver,
-            context,
-            viewports: Vec::new(),
-            is_dirty: true,
-            frame_context: None,
+            frame_context: LazyFrameContext::new(gpu.context.clone()),
+            viewport_renderer,
+            viewport_surface: None,
+            color_picker_renderer,
+            color_picker_surface: None,
         }
     }
 
@@ -202,53 +221,96 @@ impl BehaviourThread {
                 self.handle_command(cmd);
             }
 
-            if self.is_dirty {
-                self.present();
-            }
+            self.perform_actions();
         }
     }
 
     fn handle_command(&mut self, command: Command) {
-        let frame_context = self
-            .frame_context
-            .get_or_insert_with(|| paint_wgpu::FrameContext::new(&self.context));
-
         match command {
             Command::Stop => {}
 
             Command::HandleEvent(event) => {
-                self.behaviour_impl.handle_event(frame_context, event);
-                self.is_dirty = true;
+                tracing::trace!("Handling event: {event:?}");
+                let ctx = self.frame_context.get_mut();
+                self.behaviour_impl.handle_event(ctx, event);
             }
 
-            Command::AttachRenderer(renderer) => {
-                self.viewports.push(renderer);
-                self.is_dirty = true;
+            Command::AttachViewport(surface) => {
+                self.viewport_surface = Some(surface);
+                tracing::trace!("Attached viewport surface");
+            }
+
+            Command::AttachColorPicker(surface) => {
+                self.color_picker_surface = Some(surface);
+                tracing::trace!("Attached color picker surface");
             }
         }
     }
 
-    fn present(&mut self) {
-        if self.viewports.is_empty() || !self.is_dirty {
-            return;
-        }
-
-        self.viewports.retain(|renderer| {
-            let Some(renderer) = renderer.upgrade() else {
-                return false;
+    fn perform_actions(&mut self) {
+        loop {
+            let ctx = self.frame_context.get_mut();
+            let Some(action) = self.behaviour_impl.perform_action(ctx) else {
+                return;
             };
 
-            let mut frame_context = self
-                .frame_context
-                .take()
-                .unwrap_or_else(|| paint_wgpu::FrameContext::new(&self.context));
+            match action {
+                Action::PresentViewport(viewport) => self.present_viewport(&viewport),
+                Action::PresentColorPicker(color_picker) => {
+                    self.present_color_picker(&color_picker)
+                }
+            }
+        }
+    }
 
-            let viewport = self.behaviour_impl.present(&mut frame_context);
-            renderer.present(frame_context, viewport);
+    fn present_viewport(&mut self, viewport: &presentation::Viewport<Texture>) {
+        let Some(surface) = self.viewport_surface.as_ref().and_then(Weak::upgrade) else {
+            return;
+        };
 
-            true
+        surface.render(|target| {
+            let ctx = self.frame_context.take();
+            self.viewport_renderer.render(ctx, target, viewport);
+            tracing::trace!("Rendered viewport");
         });
+    }
 
-        self.is_dirty = false;
+    fn present_color_picker(&mut self, color_picker: &presentation::ColorPicker) {
+        let Some(surface) = self.color_picker_surface.as_ref().and_then(Weak::upgrade) else {
+            return;
+        };
+
+        surface.render(|target| {
+            let ctx = self.frame_context.take();
+            self.color_picker_renderer.render(ctx, target, color_picker);
+            tracing::trace!("Rendered color picker");
+        });
+    }
+}
+
+struct LazyFrameContext {
+    global_context: Arc<paint_wgpu::GlobalContext>,
+    frame_context: Option<paint_wgpu::FrameContext>,
+}
+
+impl LazyFrameContext {
+    pub fn new(global_context: Arc<paint_wgpu::GlobalContext>) -> Self {
+        Self {
+            global_context,
+            frame_context: None,
+        }
+    }
+}
+
+impl LazyFrameContext {
+    pub fn get_mut(&mut self) -> &mut paint_wgpu::FrameContext {
+        self.frame_context
+            .get_or_insert_with(|| paint_wgpu::FrameContext::new(&self.global_context))
+    }
+
+    pub fn take(&mut self) -> paint_wgpu::FrameContext {
+        self.frame_context
+            .take()
+            .unwrap_or(paint_wgpu::FrameContext::new(&self.global_context))
     }
 }

@@ -16,3 +16,12 @@ pub struct Canvas<T> {
 pub enum Layer<T> {
     Texture(T),
 }
+
+#[derive(Debug, Clone)]
+pub enum ColorPicker {
+    /// Okhsv color space slice with constant hue.
+    OkhsvHueSlice {
+        /// Hue in radians, between 0 and 2π.
+        hue: f32,
+    },
+}

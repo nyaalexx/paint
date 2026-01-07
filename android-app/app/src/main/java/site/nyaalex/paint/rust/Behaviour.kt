@@ -21,7 +21,9 @@ class Behaviour(gpu: GpuContext) : Closeable {
 
         external fun endBrushStroke(ptr: Long)
 
-        external fun attachRenderer(ptr: Long, rendererPtr: Long)
+        external fun attachViewport(ptr: Long, surfacePtr: Long)
+
+        external fun attachColorPicker(ptr: Long, surfacePtr: Long)
 
         external fun destroy(ptr: Long)
     }
@@ -42,8 +44,12 @@ class Behaviour(gpu: GpuContext) : Closeable {
         Native.endBrushStroke(ptr)
     }
 
-    fun attachRenderer(renderer: ViewportRenderer) {
-        Native.attachRenderer(ptr, renderer.ptr)
+    fun attachViewport(surface: Surface) {
+        Native.attachViewport(ptr, surface.ptr)
+    }
+
+    fun attachColorPicker(surface: Surface) {
+        Native.attachColorPicker(ptr, surface.ptr)
     }
 
     override fun close() {

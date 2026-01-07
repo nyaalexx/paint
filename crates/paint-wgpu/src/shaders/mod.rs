@@ -5,6 +5,7 @@ use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Key {
+    FullscreenTriangle,
     SingleQuad,
     StampedBrush,
 }
@@ -12,6 +13,7 @@ pub enum Key {
 impl Key {
     pub fn compile(self, device: &wgpu::Device) -> wgpu::ShaderModule {
         let wgsl = match self {
+            Key::FullscreenTriangle => include_str!("wgsl/fullscreen_triangle.wgsl"),
             Key::SingleQuad => include_str!("wgsl/single_quad.wgsl"),
             Key::StampedBrush => include_str!("wgsl/stamped_brush.wgsl"),
         };

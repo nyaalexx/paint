@@ -10,5 +10,6 @@ class PaintViewModel : ViewModel() {
 
     init {
         addCloseable(behaviour)
+        addCloseable(gpu)
     }
 }
