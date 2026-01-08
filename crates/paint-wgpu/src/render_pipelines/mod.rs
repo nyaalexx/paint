@@ -1,4 +1,5 @@
 pub mod fullscreen_triangle;
+pub mod fullscreen_triangle_interpolate_two_textures;
 pub mod single_quad;
 pub mod stamped_brush;
 
@@ -12,6 +13,7 @@ use crate::{pipeline_layouts, shaders};
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Key {
     FullscreenTriangle,
+    FullscreenTriangleInterpolateTwoTextures,
     SingleQuad,
     StampedBrush,
 }
@@ -26,6 +28,13 @@ impl Key {
         match self {
             Key::FullscreenTriangle => {
                 self::fullscreen_triangle::compile(device, shaders, pipeline_layouts)
+            }
+            Key::FullscreenTriangleInterpolateTwoTextures => {
+                self::fullscreen_triangle_interpolate_two_textures::compile(
+                    device,
+                    shaders,
+                    pipeline_layouts,
+                )
             }
             Key::SingleQuad => self::single_quad::compile(device, shaders, pipeline_layouts),
             Key::StampedBrush => self::stamped_brush::compile(device, shaders, pipeline_layouts),

@@ -75,11 +75,11 @@ impl Compositor {
             translation: transform.translation,
         };
 
-        let bind_group = bind_group_layouts::single_sampled_texture::create_bind_group(
+        let bind_group = bind_group_layouts::sampled_textures::create_bind_group(
             &self.context.device,
             &self.context.bind_group_layouts,
-            &texture.0,
             &self.context.default_sampler,
+            &[&texture.0],
         );
 
         let mut pass = ctx.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

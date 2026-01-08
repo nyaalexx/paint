@@ -6,10 +6,10 @@ struct Immediates {
 var<immediate> imm: Immediates;
 
 @group(0) @binding(0)
-var u_texture: texture_2d<f32>;
+var u_sampler: sampler;
 
 @group(0) @binding(1)
-var u_sampler: sampler;
+var u_texture: texture_2d<f32>;
 
 struct VertexOutput {
     @builtin(position) pos: vec4<f32>,

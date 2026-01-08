@@ -1,12 +1,11 @@
-use glam::{Mat2, Vec2};
+use std::mem;
 
 use crate::{bind_group_layouts, pipeline_layouts, shaders};
 
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, zerocopy::IntoBytes, zerocopy::Immutable)]
 pub struct Immediates {
-    pub transform: Mat2,
-    pub translation: Vec2,
+    pub alpha: f32,
 }
 
 pub fn compile(
@@ -14,17 +13,17 @@ pub fn compile(
     shaders: &shaders::Storage,
     pipeline_layouts: &pipeline_layouts::Storage,
 ) -> wgpu::RenderPipeline {
-    let shader = shaders.get(shaders::Key::SingleQuad);
+    let shader = shaders.get(shaders::Key::FullscreenTriangleInterpolateTwoTextures);
 
     let layout = pipeline_layouts.get(pipeline_layouts::Key {
         bind_group_layouts: vec![bind_group_layouts::Key::SampledTextures {
-            num_texture_bindings: 1,
+            num_texture_bindings: 2,
         }],
-        immediate_size: std::mem::size_of::<Immediates>() as u32,
+        immediate_size: mem::size_of::<Immediates>() as u32,
     });
 
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("SingleQuad Render Pipeline"),
+        label: Some("FullscreenTriangleInterpolateTwoTextures Render Pipeline"),
         layout: Some(&layout),
         vertex: wgpu::VertexState {
             module: &shader,
@@ -41,7 +40,7 @@ pub fn compile(
             compilation_options: Default::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                blend: None,
                 write_mask: wgpu::ColorWrites::all(),
             })],
         }),

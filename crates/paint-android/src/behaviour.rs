@@ -245,6 +245,11 @@ impl BehaviourThread {
                 tracing::trace!("Attached color picker surface");
             }
         }
+
+        // TODO: remove, this is just for debugging
+        let ctx = self.frame_context.get_mut();
+        self.behaviour_impl
+            .handle_event(ctx, Event::InvalidateColorPicker);
     }
 
     fn perform_actions(&mut self) {

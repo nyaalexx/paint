@@ -1,17 +1,19 @@
-pub mod single_sampled_texture;
+pub mod sampled_textures;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Key {
-    SingleSampledTexture,
+    SampledTextures { num_texture_bindings: usize },
 }
 
 impl Key {
     pub fn create(self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
         match self {
-            Key::SingleSampledTexture => self::single_sampled_texture::create(device),
+            Key::SampledTextures {
+                num_texture_bindings,
+            } => self::sampled_textures::create(device, num_texture_bindings),
         }
     }
 }

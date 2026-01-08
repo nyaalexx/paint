@@ -8,7 +8,9 @@ pub fn compile(
     let shader = shaders.get(shaders::Key::FullscreenTriangle);
 
     let layout = pipeline_layouts.get(pipeline_layouts::Key {
-        bind_group_layouts: vec![bind_group_layouts::Key::SingleSampledTexture],
+        bind_group_layouts: vec![bind_group_layouts::Key::SampledTextures {
+            num_texture_bindings: 1,
+        }],
         immediate_size: 0,
     });
 

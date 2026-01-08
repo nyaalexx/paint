@@ -1,8 +1,17 @@
+struct Immediates {
+    alpha: f32,
+}
+
+var<immediate> imm: Immediates;
+
 @group(0) @binding(0)
 var u_sampler: sampler;
 
 @group(0) @binding(1)
-var u_texture: texture_2d<f32>;
+var u_texture_a: texture_2d<f32>;
+
+@group(0) @binding(2)
+var u_texture_b: texture_2d<f32>;
 
 struct VertexOutput {
     @builtin(position) pos: vec4<f32>,
@@ -33,5 +42,7 @@ fn vertex(@builtin(vertex_index) in_vertex_index: u32) -> VertexOutput {
 
 @fragment
 fn fragment(v: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(u_texture, u_sampler, v.uv);
+    let a = textureSample(u_texture_a, u_sampler, v.uv);
+    let b = textureSample(u_texture_b, u_sampler, v.uv);
+    return mix(a, b, imm.alpha);
 }

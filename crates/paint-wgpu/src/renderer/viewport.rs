@@ -16,11 +16,11 @@ pub struct ViewportRenderer {
 
 impl ViewportRenderer {
     pub fn new(context: Arc<GlobalContext>) -> Self {
-        let default_bind_group = bind_group_layouts::single_sampled_texture::create_bind_group(
+        let default_bind_group = bind_group_layouts::sampled_textures::create_bind_group(
             &context.device,
             &context.bind_group_layouts,
-            &context.default_texture_view,
             &context.default_sampler,
+            &[&context.default_texture_view],
         );
 
         Self {
@@ -80,11 +80,11 @@ impl ViewportRenderer {
         for layer in &viewport.canvas.layers {
             match layer {
                 presentation::Layer::Texture(texture) => {
-                    let bind_group = bind_group_layouts::single_sampled_texture::create_bind_group(
+                    let bind_group = bind_group_layouts::sampled_textures::create_bind_group(
                         &self.context.device,
                         &self.context.bind_group_layouts,
-                        &texture.0,
                         &self.context.default_sampler,
+                        &[&texture.0],
                     );
 
                     pass.set_bind_group(0, &bind_group, &[]);
