@@ -1,4 +1,4 @@
-package site.nyaalex.paint
+package site.nyaalex.paint.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import site.nyaalex.paint.core.CoreViewModel
 import site.nyaalex.paint.rust.Behaviour
 import site.nyaalex.paint.rust.Surface
 import kotlin.math.absoluteValue
@@ -19,22 +20,24 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 @Composable
-fun PaintViewport(modifier: Modifier = Modifier, viewModel: PaintViewModel = viewModel()) {
+fun Viewport(modifier: Modifier = Modifier) {
+    val coreViewModel: CoreViewModel = viewModel()
+
     AndroidView(
         factory = { context ->
-            PaintViewportView(context)
+            ViewportView(context)
         },
         update = { view ->
-            view.bind(viewModel)
+            view.bind(coreViewModel)
         },
         modifier = modifier
     )
 }
 
-private class PaintViewportView(context: Context) : SurfaceView(context) {
-    private var viewModel: PaintViewModel? = null
+private class ViewportView(context: Context) : SurfaceView(context) {
+    private var viewModel: CoreViewModel? = null
 
-    fun bind(viewModel: PaintViewModel) {
+    fun bind(viewModel: CoreViewModel) {
         this.viewModel = viewModel
     }
 

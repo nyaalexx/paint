@@ -1,4 +1,4 @@
-package site.nyaalex.paint
+package site.nyaalex.paint.ui
 
 import android.content.Context
 import android.view.SurfaceHolder
@@ -7,26 +7,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import site.nyaalex.paint.core.CoreViewModel
 import site.nyaalex.paint.rust.ColorPickerRenderer
 import site.nyaalex.paint.rust.Surface
 
 @Composable
-fun ColorPicker(modifier: Modifier = Modifier, viewModel: PaintViewModel = viewModel()) {
+fun ColorPicker(modifier: Modifier = Modifier) {
+    val coreViewModel: CoreViewModel = viewModel()
+
     AndroidView(
         factory = { context ->
             ColorPickerView(context)
         },
         update = { view ->
-            view.bind(viewModel)
+            view.bind(coreViewModel)
         },
         modifier = modifier
     )
 }
 
 private class ColorPickerView(context: Context) : SurfaceView(context) {
-    private var viewModel: PaintViewModel? = null
+    private var viewModel: CoreViewModel? = null
 
-    fun bind(viewModel: PaintViewModel) {
+    fun bind(viewModel: CoreViewModel) {
         this.viewModel = viewModel
     }
 

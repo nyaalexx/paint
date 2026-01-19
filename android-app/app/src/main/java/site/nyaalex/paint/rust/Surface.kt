@@ -1,14 +1,15 @@
 package site.nyaalex.paint.rust
 
+import android.view.Surface
 import java.io.Closeable
 
-class Surface(runtime: Runtime, androidSurface: android.view.Surface) : Closeable {
+class Surface(runtime: Runtime, androidSurface: Surface) : Closeable {
     private object Native {
         init {
             System.loadLibrary("paint_android")
         }
 
-        external fun create(runtimePtr: Long, androidSurface: android.view.Surface): Long
+        external fun create(runtimePtr: Long, androidSurface: Surface): Long
 
         external fun resize(ptr: Long, width: Int, height: Int)
 

@@ -25,6 +25,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import site.nyaalex.paint.rust.Logging
+import site.nyaalex.paint.ui.ColorPicker
+import site.nyaalex.paint.ui.Viewport
 import site.nyaalex.paint.ui.theme.PaintTheme
 
 class MainActivity : ComponentActivity() {
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
                         .background(MaterialTheme.colorScheme.background)
                         .fillMaxSize(),
                 ) {
-                    PaintViewport()
+                    Viewport()
 
                     ColorPicker(modifier = Modifier.width(512.dp).height(512.dp).offset(y = 128.dp))
 
