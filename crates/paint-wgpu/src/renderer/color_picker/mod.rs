@@ -70,7 +70,7 @@ impl ColorPickerRenderer {
 
         let hit = self
             .slice_cache
-            .get_or_schedule(slice::Kind::OkhsvHueSlice, t * 2.0 * PI);
+            .get(slice::Kind::OkhsvHueSlice, t * 2.0 * PI);
 
         match hit {
             Some(slice::CacheHit::Exact { texture_view }) => {
@@ -124,6 +124,7 @@ impl ColorPickerRenderer {
 
         drop(pass);
 
+        // TODO: this shouldn't be here
         let command_buffer = ctx.encoder.finish();
         self.context.queue.submit(std::iter::once(command_buffer));
     }

@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import site.nyaalex.paint.rust.Behaviour
+import site.nyaalex.paint.rust.ColorPickerRenderer
 import site.nyaalex.paint.rust.Surface
 
 @Composable
@@ -30,18 +30,18 @@ private class ColorPickerView(context: Context) : SurfaceView(context) {
         this.viewModel = viewModel
     }
 
-    private val behaviour: Behaviour?
-        get() = viewModel?.behaviour
-
     private var surface: Surface? = null
+    private var renderer: ColorPickerRenderer? = null
+
+    private var hue: Float = 0.0f
 
     init {
         holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val vm = viewModel ?: return
-                val newSurface = Surface(vm.gpu, holder.surface)
-                vm.behaviour.attachColorPicker(newSurface)
-                surface = newSurface
+                surface = Surface(vm.gpu, holder.surface)
+                renderer = ColorPickerRenderer(vm.gpu)
+                render()
             }
 
             override fun surfaceChanged(
@@ -51,12 +51,21 @@ private class ColorPickerView(context: Context) : SurfaceView(context) {
                 height: Int
             ) {
                 surface?.resize(width, height)
+                render()
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
+                renderer?.close()
+                renderer = null
                 surface?.close()
                 surface = null
             }
         })
+    }
+
+    private fun render() {
+        val renderer = renderer ?: return
+        val surface = surface ?: return
+        renderer.renderOkhsvHueSlice(surface, hue)
     }
 }

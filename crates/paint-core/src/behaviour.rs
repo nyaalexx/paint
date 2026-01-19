@@ -45,7 +45,6 @@ pub trait Context {}
 #[derive(Debug, Clone)]
 pub enum Event {
     InvalidateViewport,
-    InvalidateColorPicker,
     SetCanvasResolution(UVec2),
     SetViewportTransform(Affine2),
     BeginBrushStroke,
@@ -59,7 +58,6 @@ pub enum Event {
 #[derive(Debug, Clone)]
 pub enum Action<I: Impls> {
     PresentViewport(presentation::Viewport<I::Texture>),
-    PresentColorPicker(presentation::ColorPicker),
 }
 
 pub trait BrushEngine {

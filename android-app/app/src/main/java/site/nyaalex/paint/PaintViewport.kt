@@ -48,7 +48,7 @@ private class PaintViewportView(context: Context) : SurfaceView(context) {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val vm = viewModel ?: return
                 val newSurface = Surface(vm.gpu, holder.surface)
-                vm.behaviour.attachViewport(newSurface)
+                vm.behaviour.attachViewportSurface(newSurface)
                 surface = newSurface
             }
 

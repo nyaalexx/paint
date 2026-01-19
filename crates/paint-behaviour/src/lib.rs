@@ -12,7 +12,6 @@ pub struct Behaviour<I: Impls> {
 
 struct State<I: Impls> {
     viewport_dirty: bool,
-    color_picker_dirty: bool,
     canvas_resolution: UVec2,
     viewport_transform: Affine2,
     brush_stroke: Option<I::BrushStroke>,
@@ -23,7 +22,6 @@ impl<I: Impls> Behaviour<I> {
         Self {
             state: State {
                 viewport_dirty: true,
-                color_picker_dirty: true,
                 canvas_resolution: UVec2::new(2304, 1440),
                 viewport_transform: Affine2::IDENTITY,
                 brush_stroke: None,
@@ -37,10 +35,6 @@ impl<I: Impls> Behaviour<I> {
         match event {
             Event::InvalidateViewport => {
                 self.state.viewport_dirty = true;
-            }
-
-            Event::InvalidateColorPicker => {
-                self.state.color_picker_dirty = true;
             }
 
             Event::SetCanvasResolution(resolution) => {
@@ -83,12 +77,6 @@ impl<I: Impls> Behaviour<I> {
             return Some(Action::PresentViewport(viewport));
         }
 
-        if self.state.color_picker_dirty {
-            let color_picker = self.present_color_picker();
-            self.state.color_picker_dirty = false;
-            return Some(Action::PresentColorPicker(color_picker));
-        }
-
         None
     }
 
@@ -110,9 +98,5 @@ impl<I: Impls> Behaviour<I> {
                 layers,
             },
         }
-    }
-
-    fn present_color_picker(&mut self) -> presentation::ColorPicker {
-        presentation::ColorPicker::OkhsvHueSlice { hue: 0.0 }
     }
 }
