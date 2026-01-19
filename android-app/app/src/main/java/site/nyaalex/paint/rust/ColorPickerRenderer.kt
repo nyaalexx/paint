@@ -2,8 +2,8 @@ package site.nyaalex.paint.rust
 
 import java.io.Closeable
 
-class ColorPickerRenderer(gpu: GpuContext) : Closeable {
-    internal var ptr: Long = Native.create(gpu.ptr)
+class ColorPickerRenderer(runtime: Runtime) : Closeable {
+    internal var ptr: Long = Native.create(runtime.ptr)
         private set
 
     private object Native {
@@ -11,7 +11,7 @@ class ColorPickerRenderer(gpu: GpuContext) : Closeable {
             System.loadLibrary("paint_android")
         }
 
-        external fun create(gpuPtr: Long): Long
+        external fun create(runtimePtr: Long): Long
 
         external fun renderOkhsvHueSlice(ptr: Long, surfacePtr: Long, hue: Float)
 

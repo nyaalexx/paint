@@ -2,14 +2,12 @@ package site.nyaalex.paint
 
 import androidx.lifecycle.ViewModel
 import site.nyaalex.paint.rust.Behaviour
-import site.nyaalex.paint.rust.GpuContext
+import site.nyaalex.paint.rust.Runtime
 
 class PaintViewModel : ViewModel() {
-    val gpu: GpuContext = GpuContext()
-    val behaviour: Behaviour = Behaviour(gpu)
+    val runtime: Runtime = Runtime()
+    init { addCloseable { runtime }}
 
-    init {
-        addCloseable(behaviour)
-        addCloseable(gpu)
-    }
+    val behaviour: Behaviour = Behaviour(runtime)
+    init { addCloseable { behaviour }}
 }

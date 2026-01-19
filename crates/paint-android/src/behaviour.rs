@@ -6,7 +6,7 @@ use paint_core::behaviour::{Action, BrushState, Event};
 use paint_core::presentation;
 use paint_wgpu::Texture;
 
-use crate::gpu::GpuContext;
+use crate::runtime::Runtime;
 use crate::surface::Surface;
 
 pub mod ffi {
@@ -19,9 +19,9 @@ pub mod ffi {
 
     #[unsafe(no_mangle)]
     #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
-    pub fn create(_env: JNIEnv, _this: JObject, gpu_ptr: usize) -> usize {
-        let gpu = unsafe { &*(gpu_ptr as *const GpuContext) };
-        let behaviour = Behaviour::new(gpu);
+    pub fn create(_env: JNIEnv, _this: JObject, runtime_ptr: usize) -> usize {
+        let runtime = unsafe { &*(runtime_ptr as *const Runtime) };
+        let behaviour = Behaviour::new(runtime);
         Box::into_raw(Box::new(behaviour)) as usize
     }
 
@@ -130,10 +130,10 @@ pub struct Behaviour {
 }
 
 impl Behaviour {
-    pub fn new(gpu: &GpuContext) -> Self {
+    pub fn new(runtime: &Runtime) -> Self {
         let (command_sender, command_receiver) = mpsc::channel();
 
-        let behaviour_thread = BehaviourThread::new(gpu, command_receiver);
+        let behaviour_thread = BehaviourThread::new(runtime, command_receiver);
         let thread_handle = std::thread::spawn(move || behaviour_thread.run());
 
         Self {
@@ -171,22 +171,22 @@ struct BehaviourThread {
     command_receiver: Receiver<Command>,
     frame_context: LazyFrameContext,
 
-    viewport_renderer: paint_wgpu::ViewportRenderer,
+    viewport_renderer: Arc<paint_wgpu::ViewportRenderer>,
     viewport_surface: Option<Weak<Surface>>,
 }
 
 impl BehaviourThread {
-    pub fn new(gpu: &GpuContext, command_receiver: Receiver<Command>) -> Self {
-        let context = gpu.context.clone();
-        let compositor = paint_wgpu::Compositor::new(context.clone());
-        let brush_engine = paint_wgpu::BrushEngine::new(context.clone());
+    pub fn new(runtime: &Runtime, command_receiver: Receiver<Command>) -> Self {
+        let compositor = paint_wgpu::Compositor::new(runtime.context.clone());
+        let brush_engine = paint_wgpu::BrushEngine::new(runtime.context.clone());
         let behaviour_impl = BehaviourImpl::new(compositor, brush_engine);
-        let viewport_renderer = paint_wgpu::ViewportRenderer::new(context.clone());
+        let frame_context = LazyFrameContext::new(runtime.context.clone());
+        let viewport_renderer = runtime.viewport_renderer.clone();
 
         Self {
             behaviour_impl,
             command_receiver,
-            frame_context: LazyFrameContext::new(gpu.context.clone()),
+            frame_context,
             viewport_renderer,
             viewport_surface: None,
         }

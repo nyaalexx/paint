@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use ndk::native_window::NativeWindow;
 use wgpu::rwh::{HasDisplayHandle, HasWindowHandle};
 
-use crate::gpu::GpuContext;
+use crate::runtime::Runtime;
 
 pub mod ffi {
     use jni::JNIEnv;
@@ -14,8 +14,8 @@ pub mod ffi {
 
     #[unsafe(no_mangle)]
     #[jni_fn("site.nyaalex.paint.rust.Surface$Native")]
-    pub fn create(env: JNIEnv, _this: JObject, gpu_ptr: usize, surface: JObject) -> usize {
-        let gpu = unsafe { &*(gpu_ptr as *const GpuContext) };
+    pub fn create(env: JNIEnv, _this: JObject, runtime_ptr: usize, surface: JObject) -> usize {
+        let runtime = unsafe { &*(runtime_ptr as *const Runtime) };
 
         let Some(native_window) =
             (unsafe { NativeWindow::from_surface(env.get_raw(), surface.as_raw()) })
@@ -24,7 +24,7 @@ pub mod ffi {
         };
 
         let window = Window::from(native_window);
-        let surface = Surface::new(gpu, window);
+        let surface = Surface::new(runtime, window);
         Box::into_raw(Box::new(Arc::new(surface))) as usize
     }
 
@@ -61,19 +61,20 @@ struct State {
 
 impl Surface {
     /// Wraps an Android [`Window`] into a GPU-rendered surface.
-    pub fn new(gpu: &GpuContext, window: Window) -> Self {
+    pub fn new(runtime: &Runtime, window: Window) -> Self {
         let width = window.width();
         let height = window.height();
 
-        let surface = gpu.create_surface(window);
+        let surface_target = wgpu::SurfaceTarget::from(window);
+        let surface = runtime.instance.create_surface(surface_target).unwrap();
 
-        let caps = surface.get_capabilities(&gpu.adapter);
+        let caps = surface.get_capabilities(&runtime.adapter);
         tracing::trace!("Surface capabilities: {caps:#?}");
 
         let format = choose_best_format(&caps.formats);
 
         Self {
-            device: gpu.device.clone(),
+            device: runtime.device.clone(),
             surface,
             format,
             state: Mutex::new(State {

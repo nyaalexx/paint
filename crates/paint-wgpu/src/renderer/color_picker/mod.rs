@@ -26,8 +26,8 @@ impl ColorPickerRenderer {
             context.device.clone(),
             context.queue.clone(),
             slice::CacheSettings {
-                width: 256,
-                height: 256,
+                width: 64,
+                height: 64,
                 num_fixed_slices: 32,
             },
         );

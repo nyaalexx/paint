@@ -2,7 +2,7 @@ package site.nyaalex.paint.rust
 
 import java.io.Closeable
 
-class GpuContext : Closeable {
+class Runtime : Closeable {
     internal var ptr: Long = Native.create()
         private set
 

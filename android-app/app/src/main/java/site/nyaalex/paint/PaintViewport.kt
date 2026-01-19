@@ -47,7 +47,7 @@ private class PaintViewportView(context: Context) : SurfaceView(context) {
         holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val vm = viewModel ?: return
-                val newSurface = Surface(vm.gpu, holder.surface)
+                val newSurface = Surface(vm.runtime, holder.surface)
                 vm.behaviour.attachViewportSurface(newSurface)
                 surface = newSurface
             }

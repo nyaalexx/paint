@@ -2,20 +2,20 @@ package site.nyaalex.paint.rust
 
 import java.io.Closeable
 
-class Surface(gpu: GpuContext, surface: android.view.Surface) : Closeable {
+class Surface(runtime: Runtime, androidSurface: android.view.Surface) : Closeable {
     private object Native {
         init {
             System.loadLibrary("paint_android")
         }
 
-        external fun create(gpuPtr: Long, surface: android.view.Surface): Long
+        external fun create(runtimePtr: Long, androidSurface: android.view.Surface): Long
 
         external fun resize(ptr: Long, width: Int, height: Int)
 
         external fun destroy(ptr: Long)
     }
 
-    internal var ptr: Long = Native.create(gpu.ptr, surface)
+    internal var ptr: Long = Native.create(runtime.ptr, androidSurface)
 
     fun resize(width: Int, height: Int) {
         assert(ptr != 0L)

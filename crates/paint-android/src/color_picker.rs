@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use paint_core::presentation;
 
-use crate::gpu::GpuContext;
+use crate::runtime::Runtime;
 use crate::surface::Surface;
 
 pub mod ffi {
@@ -14,9 +14,9 @@ pub mod ffi {
 
     #[unsafe(no_mangle)]
     #[jni_fn("site.nyaalex.paint.rust.ColorPickerRenderer$Native")]
-    pub fn create(_env: JNIEnv, _this: JObject, gpu_ptr: usize) -> usize {
-        let gpu = unsafe { &*(gpu_ptr as *const GpuContext) };
-        let behaviour = ColorPickerRenderer::new(gpu);
+    pub fn create(_env: JNIEnv, _this: JObject, runtime_ptr: usize) -> usize {
+        let runtime = unsafe { &*(runtime_ptr as *const Runtime) };
+        let behaviour = ColorPickerRenderer::new(runtime);
         Box::into_raw(Box::new(behaviour)) as usize
     }
 
@@ -49,17 +49,16 @@ pub struct ColorPickerRenderer {
 }
 
 impl ColorPickerRenderer {
-    pub fn new(gpu: &GpuContext) -> Self {
+    pub fn new(runtime: &Runtime) -> Self {
         Self {
-            global_context: gpu.context.clone(),
-            inner: Arc::new(paint_wgpu::ColorPickerRenderer::new(gpu.context.clone())),
+            global_context: runtime.context.clone(),
+            inner: runtime.color_picker_renderer.clone(),
         }
     }
 
     pub fn render(&self, surface: &Surface, color_picker: &presentation::ColorPicker) {
         let ctx = paint_wgpu::FrameContext::new(&self.global_context);
         surface.render(|target| {
-            tracing::info!("render color picekr");
             self.inner.render(ctx, target, &color_picker);
         });
     }

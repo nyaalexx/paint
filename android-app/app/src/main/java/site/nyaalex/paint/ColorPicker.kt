@@ -39,8 +39,8 @@ private class ColorPickerView(context: Context) : SurfaceView(context) {
         holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val vm = viewModel ?: return
-                surface = Surface(vm.gpu, holder.surface)
-                renderer = ColorPickerRenderer(vm.gpu)
+                surface = Surface(vm.runtime, holder.surface)
+                renderer = ColorPickerRenderer(vm.runtime)
                 render()
             }
 

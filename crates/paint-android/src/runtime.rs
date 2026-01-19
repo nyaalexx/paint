@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use crate::surface::Window;
-
-pub mod ffi {
+mod ffi {
     use jni::JNIEnv;
     use jni::objects::JObject;
     use jni_fn::jni_fn;
@@ -10,31 +8,35 @@ pub mod ffi {
     use super::*;
 
     #[unsafe(no_mangle)]
-    #[jni_fn("site.nyaalex.paint.rust.GpuContext$Native")]
+    #[jni_fn("site.nyaalex.paint.rust.Runtime$Native")]
     pub fn create(_env: JNIEnv, _this: JObject) -> usize {
-        let gpu = GpuContext::new();
-        Box::into_raw(Box::new(gpu)) as usize
+        let runtime = Runtime::new();
+        Box::into_raw(Box::new(runtime)) as usize
     }
 
     #[unsafe(no_mangle)]
-    #[jni_fn("site.nyaalex.paint.rust.GpuContext$Native")]
+    #[jni_fn("site.nyaalex.paint.rust.Runtime$Native")]
     pub fn destroy(_env: JNIEnv, _this: JObject, ptr: usize) {
         unsafe {
-            drop(Box::from_raw(ptr as *mut GpuContext));
+            drop(Box::from_raw(ptr as *mut Runtime));
         }
     }
 }
 
-pub struct GpuContext {
-    pub context: Arc<paint_wgpu::GlobalContext>,
+pub struct Runtime {
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,
     pub device: wgpu::Device,
+
+    pub context: Arc<paint_wgpu::GlobalContext>,
+    pub viewport_renderer: Arc<paint_wgpu::ViewportRenderer>,
+    pub color_picker_renderer: Arc<paint_wgpu::ColorPickerRenderer>,
 }
 
-impl GpuContext {
+impl Runtime {
     pub fn new() -> Self {
-        tracing::info!("Creating a GPU context");
+        let start_time = std::time::Instant::now();
+        tracing::info!("Initializing runtime");
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
 
@@ -47,7 +49,6 @@ impl GpuContext {
         let info = adapter.get_info();
         tracing::info!("Adapter info: {info:#?}");
 
-        // Request the WGPU device
         let device_fut = adapter.request_device(&wgpu::DeviceDescriptor {
             required_features: paint_wgpu::get_required_wgpu_features(),
             required_limits: paint_wgpu::get_required_wgpu_limits(),
@@ -57,16 +58,18 @@ impl GpuContext {
 
         let context = Arc::new(paint_wgpu::GlobalContext::new(device.clone(), queue));
 
+        let viewport_renderer = Arc::new(paint_wgpu::ViewportRenderer::new(context.clone()));
+        let color_picker_renderer = Arc::new(paint_wgpu::ColorPickerRenderer::new(context.clone()));
+
+        tracing::info!("Finished initialization in {:?}", start_time.elapsed());
+
         Self {
-            context,
             instance,
             adapter,
             device,
+            context,
+            viewport_renderer,
+            color_picker_renderer,
         }
-    }
-
-    pub fn create_surface(&self, window: Window) -> wgpu::Surface<'static> {
-        let surface_target = wgpu::SurfaceTarget::from(window);
-        self.instance.create_surface(surface_target).unwrap()
     }
 }

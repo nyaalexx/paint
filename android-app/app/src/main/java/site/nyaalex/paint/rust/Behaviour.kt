@@ -1,17 +1,14 @@
 package site.nyaalex.paint.rust
 
-import java.io.Closeable
+import java.lang.AutoCloseable
 
-class Behaviour(gpu: GpuContext) : Closeable {
-    internal var ptr: Long = Native.create(gpu.ptr)
-        private set
-
+class Behaviour(runtime: Runtime) : AutoCloseable {
     private object Native {
         init {
             System.loadLibrary("paint_android")
         }
 
-        external fun create(gpuPtr: Long): Long
+        external fun create(runtimePtr: Long): Long
 
         external fun setViewportTransform(ptr: Long, scale: Float, angle: Float, x: Float, y: Float)
 
@@ -25,6 +22,9 @@ class Behaviour(gpu: GpuContext) : Closeable {
 
         external fun destroy(ptr: Long)
     }
+
+    internal var ptr: Long = Native.create(runtime.ptr)
+        private set
 
     fun setViewportTransform(scale: Float, angle: Float, x: Float, y: Float) {
         Native.setViewportTransform(ptr, scale, angle, x, y)
