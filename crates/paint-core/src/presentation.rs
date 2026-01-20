@@ -18,10 +18,11 @@ pub enum Layer<T> {
 }
 
 #[derive(Debug, Clone)]
-pub enum ColorPicker {
+pub enum ColorPickerSlice {
     /// Okhsv color space slice with constant hue.
     OkhsvHueSlice {
         /// Hue in radians, between 0 and 2π.
         hue: f32,
     },
+    OkhslHueVerticalGradient,
 }

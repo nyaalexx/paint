@@ -2,10 +2,12 @@ package site.nyaalex.paint.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.SurfaceTexture
 import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.TextureView
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView

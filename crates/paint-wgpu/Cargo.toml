@@ -8,6 +8,7 @@ paint-core.path = "../paint-core"
 
 glam = { workspace = true, features = ["zerocopy"] }
 rand.workspace = true
+rayon.workspace = true
 tracing.workspace = true
 wgpu.workspace = true
 zerocopy.workspace = true

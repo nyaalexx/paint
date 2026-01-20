@@ -1,4 +1,4 @@
-package site.nyaalex.paint.ui
+package site.nyaalex.paint.ui.color_picker
 
 import android.content.Context
 import android.view.SurfaceHolder
@@ -12,36 +12,30 @@ import site.nyaalex.paint.rust.ColorPickerRenderer
 import site.nyaalex.paint.rust.Surface
 
 @Composable
-fun ColorPicker(modifier: Modifier = Modifier) {
+fun ColorPickerSurface(slice: Slice, modifier: Modifier = Modifier) {
     val coreViewModel: CoreViewModel = viewModel()
 
     AndroidView(
         factory = { context ->
-            ColorPickerView(context)
+            ColorPickerSurfaceView(context)
         },
         update = { view ->
-            view.bind(coreViewModel)
+            view.update(coreViewModel, slice)
         },
         modifier = modifier
     )
 }
 
-private class ColorPickerView(context: Context) : SurfaceView(context) {
-    private var viewModel: CoreViewModel? = null
-
-    fun bind(viewModel: CoreViewModel) {
-        this.viewModel = viewModel
-    }
-
+private class ColorPickerSurfaceView(context: Context) : SurfaceView(context) {
+    private var coreViewModel: CoreViewModel? = null
+    private var slice: Slice? = null
     private var surface: Surface? = null
     private var renderer: ColorPickerRenderer? = null
-
-    private var hue: Float = 0.0f
 
     init {
         holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                val vm = viewModel ?: return
+                val vm = coreViewModel ?: return
                 surface = Surface(vm.runtime, holder.surface)
                 renderer = ColorPickerRenderer(vm.runtime)
                 render()
@@ -66,9 +60,22 @@ private class ColorPickerView(context: Context) : SurfaceView(context) {
         })
     }
 
+    fun update(viewModel: CoreViewModel, slice: Slice) {
+        this.coreViewModel = viewModel
+        this.slice = slice
+        render()
+    }
+
     private fun render() {
         val renderer = renderer ?: return
         val surface = surface ?: return
-        renderer.renderOkhsvHueSlice(surface, hue)
+        val slice = slice ?: return
+
+        when (slice) {
+            is Slice.OkhsvHue ->
+                renderer.renderOkhsvHueSlice(surface, slice.hue)
+            is Slice.OkhslHueVerticalGradient ->
+                renderer.renderOkhslHueVerticalGradient(surface)
+        }
     }
 }

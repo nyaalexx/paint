@@ -31,7 +31,26 @@ pub mod ffi {
     ) {
         let this = unsafe { &*(this_ptr as *const ColorPickerRenderer) };
         let surface = unsafe { &*(surface_ptr as *const Arc<Surface>) };
-        this.render(&surface, &presentation::ColorPicker::OkhsvHueSlice { hue });
+        this.render(
+            &surface,
+            presentation::ColorPickerSlice::OkhsvHueSlice { hue },
+        );
+    }
+
+    #[unsafe(no_mangle)]
+    #[jni_fn("site.nyaalex.paint.rust.ColorPickerRenderer$Native")]
+    pub fn renderOkhslHueVerticalGradient(
+        _env: JNIEnv,
+        _this: JObject,
+        this_ptr: usize,
+        surface_ptr: usize,
+    ) {
+        let this = unsafe { &*(this_ptr as *const ColorPickerRenderer) };
+        let surface = unsafe { &*(surface_ptr as *const Arc<Surface>) };
+        this.render(
+            &surface,
+            presentation::ColorPickerSlice::OkhslHueVerticalGradient,
+        );
     }
 
     #[unsafe(no_mangle)]
@@ -56,10 +75,10 @@ impl ColorPickerRenderer {
         }
     }
 
-    pub fn render(&self, surface: &Surface, color_picker: &presentation::ColorPicker) {
+    pub fn render(&self, surface: &Surface, slice: presentation::ColorPickerSlice) {
         let ctx = paint_wgpu::FrameContext::new(&self.global_context);
         surface.render(|target| {
-            self.inner.render(ctx, target, &color_picker);
+            self.inner.render(ctx, target, slice);
         });
     }
 }

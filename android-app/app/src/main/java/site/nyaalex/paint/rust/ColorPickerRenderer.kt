@@ -15,11 +15,17 @@ class ColorPickerRenderer(runtime: Runtime) : Closeable {
 
         external fun renderOkhsvHueSlice(ptr: Long, surfacePtr: Long, hue: Float)
 
+        external fun renderOkhslHueVerticalGradient(ptr: Long, surfacePtr: Long)
+
         external fun destroy(ptr: Long)
     }
 
     fun renderOkhsvHueSlice(surface: Surface, hue: Float) {
         Native.renderOkhsvHueSlice(ptr, surface.ptr, hue)
+    }
+
+    fun renderOkhslHueVerticalGradient(surface: Surface) {
+        Native.renderOkhslHueVerticalGradient(ptr, surface.ptr)
     }
 
     override fun close() {

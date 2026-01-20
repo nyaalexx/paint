@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,9 +23,9 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import site.nyaalex.paint.rust.Logging
-import site.nyaalex.paint.ui.ColorPicker
 import site.nyaalex.paint.ui.Viewport
-import site.nyaalex.paint.ui.theme.PaintTheme
+import site.nyaalex.paint.ui.color_picker.ColorPicker
+import site.nyaalex.paint.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,19 +42,16 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         setContent {
-            PaintTheme {
+            Box(
+                modifier = Modifier
+                    .background(AppTheme.colors.background)
+                    .fillMaxSize(),
+            ) {
+                Viewport()
 
-                Box(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.background)
-                        .fillMaxSize(),
-                ) {
-                    Viewport()
+                ColorPicker(modifier = Modifier.offset(x = 50.dp, y = 300.dp))
 
-                    ColorPicker(modifier = Modifier.width(512.dp).height(512.dp).offset(y = 128.dp))
-
-                    Toolbar()
-                }
+                Toolbar()
             }
         }
     }
@@ -73,6 +68,8 @@ fun Toolbar(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.weight(1f).height(20.dp))
+        Box(modifier = Modifier
+            .weight(1f)
+            .height(20.dp))
     }
 }

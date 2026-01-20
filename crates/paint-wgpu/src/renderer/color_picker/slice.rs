@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
-use paint_core::color::{Color, NonlinearSrgb, Okhsv};
+use paint_core::color::{Color, NonlinearSrgb, Okhsl, Okhsv};
+use rayon::iter::{IntoParallelIterator, ParallelIterator as _};
 use wgpu::util::DeviceExt as _;
 
-/// Kind of 3D color space and a 2D slice of that space.
+/// Kind of 3D color space and a 2D (or 1D) slice of that space.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Kind {
     /// Constant hue Okhsv slice.
     OkhsvHueSlice,
+    /// Okhsl hue vertical gradient.
+    OkhslHueVerticalGradient,
 }
 
 fn create_fixed_slice_jobs(num_slices: u32) -> Vec<(Kind, f32)> {
@@ -17,6 +20,7 @@ fn create_fixed_slice_jobs(num_slices: u32) -> Vec<(Kind, f32)> {
             let constant = (i as f32) / (num_slices as f32 - 1.0);
             [(Kind::OkhsvHueSlice, constant * 2.0 * PI)]
         })
+        .chain([(Kind::OkhslHueVerticalGradient, 0.0)])
         .collect()
 }
 
@@ -29,21 +33,25 @@ pub struct Slice {
     pub texture_view: wgpu::TextureView,
 }
 
+struct TextureData {
+    width: u32,
+    height: u32,
+    data: Vec<u8>,
+}
+
 /// Uploads a texture storing a rasterized slice, returning its view.
 fn create_slice_texture(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    width: u32,
-    height: u32,
-    data: &[u8],
+    data: TextureData,
 ) -> wgpu::TextureView {
     let texture = device.create_texture_with_data(
         queue,
         &wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {
-                width,
-                height,
+                width: data.width,
+                height: data.height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -54,7 +62,7 @@ fn create_slice_texture(
             view_formats: &[],
         },
         wgpu::util::TextureDataOrder::LayerMajor,
-        data,
+        &data.data,
     );
 
     texture.create_view(&Default::default())
@@ -63,10 +71,13 @@ fn create_slice_texture(
 /// Rasterizes a 2D slice of a 3D color space.
 ///
 /// Returns a row-major sRGBA texture, 4 bytes per pixel.
-fn rasterize_slice(width: u32, height: u32, kind: Kind, constant: f32) -> Vec<u8> {
+fn rasterize_slice(width: u32, height: u32, kind: Kind, constant: f32) -> TextureData {
     match kind {
         Kind::OkhsvHueSlice => {
             rasterize_rectangular_plot(width, height, |x, y| Okhsv::new(constant, x, y))
+        }
+        Kind::OkhslHueVerticalGradient => {
+            rasterize_vertical_gradient(height, |y| Okhsl::new((1.0 - y) * 2.0 * PI, 1.0, 0.62))
         }
     }
 }
@@ -80,11 +91,10 @@ fn rasterize_rectangular_plot<C: Color, F: Fn(f32, f32) -> C>(
     width: u32,
     height: u32,
     f: F,
-) -> Vec<u8> {
+) -> TextureData {
     let width = width as usize;
     let height = height as usize;
-
-    let mut buf = vec![0; 4 * width * height];
+    let mut data = vec![0; 4 * width * height];
 
     for x in 0..width {
         for y in 0..height {
@@ -92,14 +102,18 @@ fn rasterize_rectangular_plot<C: Color, F: Fn(f32, f32) -> C>(
             let fy = 1.0 - (y as f32) / (height as f32 - 1.0);
             let color = f(fx, fy).to_linear_srgb_clamped();
             let rgb = NonlinearSrgb::<u8>::from_linear_srgb(color);
-            buf[4 * (y * width + x)] = rgb.r;
-            buf[4 * (y * width + x) + 1] = rgb.g;
-            buf[4 * (y * width + x) + 2] = rgb.b;
-            buf[4 * (y * width + x) + 3] = 255;
+            data[4 * (y * width + x)] = rgb.r;
+            data[4 * (y * width + x) + 1] = rgb.g;
+            data[4 * (y * width + x) + 2] = rgb.b;
+            data[4 * (y * width + x) + 3] = 255;
         }
     }
 
-    buf
+    TextureData {
+        width: width as u32,
+        height: height as u32,
+        data,
+    }
 }
 
 /// Rasterizes a radial plot of `f(angle, radius)`.
@@ -112,7 +126,7 @@ fn rasterize_circular_plot<C: Color, F: Fn(f32, f32) -> C>(
     width: u32,
     height: u32,
     f: F,
-) -> Vec<u8> {
+) -> TextureData {
     rasterize_rectangular_plot(width, height, |x, y| {
         let x = 2.0 * x - 1.0;
         let y = 2.0 * y - 1.0;
@@ -120,6 +134,13 @@ fn rasterize_circular_plot<C: Color, F: Fn(f32, f32) -> C>(
         let radius = f32::hypot(x, y).clamp(0.0, 1.0);
         f(angle, radius)
     })
+}
+
+/// Rasterizes a plot of `f(y)`.
+///
+/// Returns a row-major sRGBA texture, 4 bytes per pixel. Width is set to 1.
+fn rasterize_vertical_gradient<C: Color, F: Fn(f32) -> C>(height: u32, f: F) -> TextureData {
+    rasterize_rectangular_plot(1, height, |_x, y| f(y))
 }
 
 /// [`Cache`] settings.
@@ -154,19 +175,25 @@ pub struct Cache {
 
 impl Cache {
     pub fn new(device: wgpu::Device, queue: wgpu::Queue, settings: CacheSettings) -> Self {
+        let fixed_slices = create_fixed_slice_jobs(settings.num_fixed_slices)
+            .into_par_iter()
+            .map(|(kind, constant)| {
+                let data = rasterize_slice(settings.width, settings.height, kind, constant);
+                let texture_view = create_slice_texture(&device, &queue, data);
+                (
+                    kind,
+                    Slice {
+                        constant,
+                        texture_view,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+
         let mut kinds = HashMap::<Kind, Vec<Slice>>::new();
-
-        for (kind, constant) in create_fixed_slice_jobs(settings.num_fixed_slices) {
+        for (kind, slice) in fixed_slices {
             let list = kinds.entry(kind).or_default();
-
-            let data = rasterize_slice(settings.width, settings.height, kind, constant);
-            let texture_view =
-                create_slice_texture(&device, &queue, settings.width, settings.height, &data);
-
-            list.push(Slice {
-                constant,
-                texture_view,
-            });
+            list.push(slice);
         }
 
         Self { kinds }

@@ -1,8 +1,6 @@
 mod slice;
 
-use std::f32::consts::PI;
 use std::sync::Arc;
-use std::sync::atomic::AtomicU32;
 
 use paint_core::presentation;
 use zerocopy::IntoBytes;
@@ -15,7 +13,6 @@ pub struct ColorPickerRenderer {
     context: Arc<GlobalContext>,
     sampler: wgpu::Sampler,
     slice_cache: slice::Cache,
-    t: AtomicU32, // TODO: remove
 }
 
 impl ColorPickerRenderer {
@@ -26,9 +23,9 @@ impl ColorPickerRenderer {
             context.device.clone(),
             context.queue.clone(),
             slice::CacheSettings {
-                width: 64,
-                height: 64,
-                num_fixed_slices: 32,
+                width: 256,
+                height: 256,
+                num_fixed_slices: 64,
             },
         );
 
@@ -36,7 +33,6 @@ impl ColorPickerRenderer {
             context,
             sampler,
             slice_cache,
-            t: AtomicU32::new(0),
         }
     }
 
@@ -44,12 +40,8 @@ impl ColorPickerRenderer {
         &self,
         mut ctx: FrameContext,
         target: &wgpu::Texture,
-        _color_picker: &presentation::ColorPicker,
+        slice: presentation::ColorPickerSlice,
     ) {
-        // TODO: remove
-        let t = self.t.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let t = (t % 500) as f32 / 500.0;
-
         let target_view = target.create_view(&wgpu::TextureViewDescriptor {
             format: Some(wgpu::TextureFormat::Rgba8UnormSrgb),
             ..Default::default()
@@ -68,9 +60,16 @@ impl ColorPickerRenderer {
             ..Default::default()
         });
 
-        let hit = self
-            .slice_cache
-            .get(slice::Kind::OkhsvHueSlice, t * 2.0 * PI);
+        let (slice_kind, constant) = match slice {
+            presentation::ColorPickerSlice::OkhsvHueSlice { hue } => {
+                (slice::Kind::OkhsvHueSlice, hue)
+            }
+            presentation::ColorPickerSlice::OkhslHueVerticalGradient => {
+                (slice::Kind::OkhslHueVerticalGradient, 0.0)
+            }
+        };
+
+        let hit = self.slice_cache.get(slice_kind, constant);
 
         match hit {
             Some(slice::CacheHit::Exact { texture_view }) => {
