@@ -9,6 +9,7 @@ pub enum Key {
     FullscreenTriangleInterpolateTwoTextures,
     SingleQuad,
     StampedBrush,
+    CanvasBorder,
 }
 
 impl Key {
@@ -20,6 +21,7 @@ impl Key {
             }
             Key::SingleQuad => include_str!("wgsl/single_quad.wgsl"),
             Key::StampedBrush => include_str!("wgsl/stamped_brush.wgsl"),
+            Key::CanvasBorder => include_str!("wgsl/canvas_border.wgsl"),
         };
 
         device.create_shader_module(wgpu::ShaderModuleDescriptor {

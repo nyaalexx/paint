@@ -1,3 +1,4 @@
+pub mod canvas_border;
 pub mod fullscreen_triangle;
 pub mod fullscreen_triangle_interpolate_two_textures;
 pub mod single_quad;
@@ -16,6 +17,7 @@ pub enum Key {
     FullscreenTriangleInterpolateTwoTextures,
     SingleQuad,
     StampedBrush,
+    CanvasBorder,
 }
 
 impl Key {
@@ -38,6 +40,7 @@ impl Key {
             }
             Key::SingleQuad => self::single_quad::compile(device, shaders, pipeline_layouts),
             Key::StampedBrush => self::stamped_brush::compile(device, shaders, pipeline_layouts),
+            Key::CanvasBorder => self::canvas_border::compile(device, shaders, pipeline_layouts),
         }
     }
 }
