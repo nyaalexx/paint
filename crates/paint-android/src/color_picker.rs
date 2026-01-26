@@ -32,7 +32,7 @@ pub mod ffi {
         let this = unsafe { &*(this_ptr as *const ColorPickerRenderer) };
         let surface = unsafe { &*(surface_ptr as *const Arc<Surface>) };
         this.render(
-            &surface,
+            surface,
             presentation::ColorPickerSlice::OkhsvHueSlice { hue },
         );
     }
@@ -48,7 +48,7 @@ pub mod ffi {
         let this = unsafe { &*(this_ptr as *const ColorPickerRenderer) };
         let surface = unsafe { &*(surface_ptr as *const Arc<Surface>) };
         this.render(
-            &surface,
+            surface,
             presentation::ColorPickerSlice::OkhslHueVerticalGradient,
         );
     }

@@ -128,7 +128,7 @@ impl ViewportRenderer {
                 .iter()
                 .copied()
                 .map(|c| (c, (c - pos).length_squared()))
-                .min_by(|(_, a), (_, b)| f32::total_cmp(&a, &b))
+                .min_by(|(_, a), (_, b)| f32::total_cmp(a, b))
                 .unwrap();
 
             let pos_px = viewport.transform.transform_point2(pos);
