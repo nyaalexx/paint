@@ -12,6 +12,52 @@ impl paint_core::behaviour::Texture for Texture {
     type Context = FrameContext;
     type Downloaded = DownloadedTexture;
 
+    fn upload(ctx: &mut Self::Context, texture: persistence::Texture<'_>) -> Self {
+        let size = wgpu::Extent3d {
+            width: texture.resolution.x,
+            height: texture.resolution.y,
+            depth_or_array_layers: 1,
+        };
+
+        let format = match texture.format {
+            persistence::TextureFormat::Rgba8NonlinearSrgb => wgpu::TextureFormat::Rgba8UnormSrgb,
+        };
+
+        let wgpu_texture = ctx.device.create_texture(&wgpu::TextureDescriptor {
+            label: None,
+            size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
+        ctx.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &wgpu_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &texture.data,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(
+                    format.block_copy_size(None).unwrap() * texture.row_stride as u32,
+                ),
+                rows_per_image: Some(texture.resolution.y),
+            },
+            size,
+        );
+
+        let wgpu_texture_view = wgpu_texture.create_view(&Default::default());
+        Texture(wgpu_texture_view)
+    }
+
     fn download(
         &self,
         ctx: &mut Self::Context,
@@ -58,7 +104,6 @@ impl paint_core::behaviour::Texture for Texture {
         ctx.encoder
             .map_buffer_on_submit(&buffer.clone(), wgpu::MapMode::Read, .., move |res| {
                 res.unwrap();
-                tracing::debug!("Downloaded texture of {buffer_size} bytes");
 
                 let tex = DownloadedTexture {
                     resolution: UVec2::new(texture_size.width, texture_size.height),

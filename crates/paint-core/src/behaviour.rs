@@ -31,10 +31,10 @@ pub trait Behaviour {
 /// lower level logic.
 pub trait Impls {
     type Context: Context;
-    type Texture: Texture;
-    type Compositor: Compositor<Texture = Self::Texture, Context = Self::Context>;
+    type Texture: Texture<Context = Self::Context>;
+    type Compositor: Compositor<Context = Self::Context, Texture = Self::Texture>;
     type BrushEngine: BrushEngine<Stroke = Self::BrushStroke>;
-    type BrushStroke: BrushStroke<Texture = Self::Texture, Context = Self::Context>;
+    type BrushStroke: BrushStroke<Context = Self::Context, Texture = Self::Texture>;
 }
 
 pub trait Context {}
@@ -42,6 +42,8 @@ pub trait Context {}
 pub trait Texture: std::fmt::Debug + Send + Sync + Clone + 'static {
     type Context: Context;
     type Downloaded: DownloadedTexture;
+
+    fn upload(ctx: &mut Self::Context, texture: persistence::Texture<'_>) -> Self;
 
     fn download(
         &self,

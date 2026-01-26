@@ -46,6 +46,7 @@ impl GlobalContext {
 #[derive(Debug)]
 pub struct FrameContext {
     pub(crate) device: wgpu::Device,
+    pub(crate) queue: wgpu::Queue,
     pub(crate) encoder: wgpu::CommandEncoder,
 }
 
@@ -53,6 +54,7 @@ impl FrameContext {
     pub fn new(ctx: &GlobalContext) -> Self {
         Self {
             device: ctx.device.clone(),
+            queue: ctx.queue.clone(),
             encoder: ctx.device.create_command_encoder(&Default::default()),
         }
     }
