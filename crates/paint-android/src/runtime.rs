@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use futures_lite::future::block_on;
+
 mod ffi {
     use jni::JNIEnv;
     use jni::objects::JObject;
@@ -44,7 +46,7 @@ impl Runtime {
             power_preference: wgpu::PowerPreference::HighPerformance,
             ..Default::default()
         });
-        let adapter = pollster::block_on(adapter_fut).unwrap();
+        let adapter = block_on(adapter_fut).unwrap();
 
         let info = adapter.get_info();
         tracing::info!("Adapter info: {info:#?}");
@@ -54,7 +56,7 @@ impl Runtime {
             required_limits: paint_wgpu::get_required_wgpu_limits(),
             ..Default::default()
         });
-        let (device, queue) = pollster::block_on(device_fut).unwrap();
+        let (device, queue) = block_on(device_fut).unwrap();
 
         let context = Arc::new(paint_wgpu::GlobalContext::new(device.clone(), queue));
 

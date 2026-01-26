@@ -63,7 +63,7 @@ impl<I: Impls> Behaviour<I> {
             Event::EndBrushStroke => {
                 if let Some(mut stroke) = self.state.brush_stroke.take() {
                     let stroke_texture = stroke.render(ctx);
-                    self.compositor.put_texture(stroke_texture);
+                    self.compositor.put_texture(ctx, stroke_texture);
                     self.state.viewport_dirty = true;
                 }
             }

@@ -1,6 +1,6 @@
 use glam::{Affine2, UVec2, Vec2};
 
-use crate::presentation;
+use crate::{persistence, presentation};
 
 /// App behaviour implementation.
 ///
@@ -37,7 +37,11 @@ pub trait Impls {
     type BrushStroke: BrushStroke<Texture = Self::Texture, Context = Self::Context>;
 }
 
-pub trait Texture: std::fmt::Debug + Send + Sync + Clone {}
+pub trait Texture: std::fmt::Debug + Send + Sync + Clone + 'static {}
+
+pub trait DownloadedTexture: std::fmt::Debug + Send + Sync + 'static {
+    fn as_persistence(&self) -> persistence::Texture<'_>;
+}
 
 pub trait Context {}
 
@@ -91,7 +95,12 @@ pub trait Compositor {
     type Texture: Texture;
     type Context: Context;
 
-    fn put_texture(&mut self, texture: Self::Texture);
+    fn put_texture(&mut self, ctx: &mut Self::Context, texture: Self::Texture);
 
     fn render(&mut self, ctx: &mut Self::Context) -> Self::Texture;
+
+    fn download(
+        &mut self,
+        ctx: &mut Self::Context,
+    ) -> impl Future<Output = impl DownloadedTexture> + Send + 'static;
 }
