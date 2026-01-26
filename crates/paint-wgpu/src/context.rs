@@ -45,12 +45,14 @@ impl GlobalContext {
 
 #[derive(Debug)]
 pub struct FrameContext {
+    pub(crate) device: wgpu::Device,
     pub(crate) encoder: wgpu::CommandEncoder,
 }
 
 impl FrameContext {
     pub fn new(ctx: &GlobalContext) -> Self {
         Self {
+            device: ctx.device.clone(),
             encoder: ctx.device.create_command_encoder(&Default::default()),
         }
     }

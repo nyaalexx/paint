@@ -1,9 +1,6 @@
-use std::borrow::Cow;
 use std::sync::Arc;
 
-use glam::{Affine2, UVec2, Vec2};
-use paint_core::behaviour::DownloadedTexture;
-use paint_core::persistence;
+use glam::{Affine2, Vec2};
 use zerocopy::IntoBytes as _;
 
 use crate::{FrameContext, GlobalContext, Texture, bind_group_layouts, render_pipelines};
@@ -95,78 +92,5 @@ impl paint_core::behaviour::Compositor for Compositor {
 
     fn render(&mut self, _ctx: &mut Self::Context) -> Self::Texture {
         Texture(self.canvas_texture_view.clone())
-    }
-
-    fn download(
-        &mut self,
-        ctx: &mut Self::Context,
-    ) -> impl Future<Output = impl DownloadedTexture> + Send + 'static {
-        let texture_size = self.canvas_texture_view.texture().size();
-        let bytes_per_block = 4; // for now the format is hardcoded
-        let bytes_per_row = (bytes_per_block * texture_size.width).next_multiple_of(256);
-        let rows_per_image = texture_size.height;
-        let buffer_size = u64::from(bytes_per_row) * u64::from(rows_per_image);
-
-        let buffer = self.context.device.create_buffer(&wgpu::BufferDescriptor {
-            size: buffer_size,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-            label: None,
-        });
-
-        let src = wgpu::TexelCopyTextureInfo {
-            texture: self.canvas_texture_view.texture(),
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        };
-
-        let dst = wgpu::TexelCopyBufferInfo {
-            buffer: &buffer,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(bytes_per_row),
-                rows_per_image: Some(rows_per_image),
-            },
-        };
-
-        ctx.encoder.copy_texture_to_buffer(src, dst, texture_size);
-
-        let (sender, receiver) = oneshot::channel();
-        ctx.encoder
-            .map_buffer_on_submit(&buffer.clone(), wgpu::MapMode::Read, .., move |res| {
-                res.unwrap();
-                tracing::debug!("Downloaded texture of {buffer_size} bytes");
-
-                let tex = DownloadedTextureImpl {
-                    resolution: UVec2::new(texture_size.width, texture_size.height),
-                    format: persistence::TextureFormat::Rgba8NonlinearSrgb,
-                    buffer_view: buffer.get_mapped_range(..),
-                    row_stride: bytes_per_row as usize,
-                };
-
-                let _ = sender.send(tex);
-            });
-
-        async move { receiver.await.unwrap() }
-    }
-}
-
-#[derive(Debug)]
-struct DownloadedTextureImpl {
-    resolution: UVec2,
-    format: persistence::TextureFormat,
-    buffer_view: wgpu::BufferView,
-    row_stride: usize,
-}
-
-impl DownloadedTexture for DownloadedTextureImpl {
-    fn as_persistence(&self) -> persistence::Texture<'_> {
-        persistence::Texture {
-            resolution: self.resolution,
-            format: self.format,
-            data: Cow::Borrowed(&self.buffer_view),
-            row_stride: self.row_stride,
-        }
     }
 }

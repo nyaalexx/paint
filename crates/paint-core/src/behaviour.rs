@@ -30,20 +30,28 @@ pub trait Behaviour {
 /// Collection of traits designed to work together, which implement actual
 /// lower level logic.
 pub trait Impls {
-    type Texture: Texture;
     type Context: Context;
+    type Texture: Texture;
     type Compositor: Compositor<Texture = Self::Texture, Context = Self::Context>;
     type BrushEngine: BrushEngine<Stroke = Self::BrushStroke>;
     type BrushStroke: BrushStroke<Texture = Self::Texture, Context = Self::Context>;
 }
 
-pub trait Texture: std::fmt::Debug + Send + Sync + Clone + 'static {}
+pub trait Context {}
+
+pub trait Texture: std::fmt::Debug + Send + Sync + Clone + 'static {
+    type Context: Context;
+    type Downloaded: DownloadedTexture;
+
+    fn download(
+        &self,
+        ctx: &mut Self::Context,
+    ) -> impl Future<Output = Self::Downloaded> + Send + 'static;
+}
 
 pub trait DownloadedTexture: std::fmt::Debug + Send + Sync + 'static {
     fn as_persistence(&self) -> persistence::Texture<'_>;
 }
-
-pub trait Context {}
 
 /// An input event.
 #[derive(Debug, Clone)]
@@ -98,9 +106,4 @@ pub trait Compositor {
     fn put_texture(&mut self, ctx: &mut Self::Context, texture: Self::Texture);
 
     fn render(&mut self, ctx: &mut Self::Context) -> Self::Texture;
-
-    fn download(
-        &mut self,
-        ctx: &mut Self::Context,
-    ) -> impl Future<Output = impl DownloadedTexture> + Send + 'static;
 }
