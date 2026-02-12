@@ -1,0 +1,17 @@
+[package]
+name = "paint-persistence"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+paint-core.path = "../paint-core"
+
+chrono = { workspace = true, features = ["serde"] }
+glam = { workspace = true, features = ["serde"] }
+rapid-qoi.workspace = true
+rusqlite = { workspace = true, features = ["bundled", "blob"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+zerocopy.workspace = true

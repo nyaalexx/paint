@@ -7,3 +7,4 @@ edition = "2024"
 chrono.workspace = true
 glam.workspace = true
 half.workspace = true
+thiserror.workspace = true

@@ -27,21 +27,19 @@
       in {
           devShell = (pkgs.mkShell.override { stdenv = pkgs.clangStdenv; }) rec {
           buildInputs = with pkgs; [
-            cargo-expand
             cargo-nextest
-            clangStdenv
-            pkg-config
             rust-toolchain
-            rustPlatform.bindgenHook
-            heaptrack
-            cargo-flamegraph
             python3Minimal
             wgsl-analyzer
+            clangStdenv
+            pkgsCross.aarch64-android-prebuilt.stdenv.cc
           ];
 
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
           RUST_SRC_PATH = "${rust-toolchain}/lib/rustlib/src/rust/library";
           RUST_BACKTRACE = 1;
+          CC_aarch64_linux_android = "${pkgs.pkgsCross.aarch64-android-prebuilt.stdenv.cc}/bin/aarch64-unknown-linux-android-clang";
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER = "${pkgs.pkgsCross.aarch64-android-prebuilt.stdenv.cc}/bin/aarch64-unknown-linux-android-clang";
         };
       }
     );
