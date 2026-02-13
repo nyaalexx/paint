@@ -27,25 +27,25 @@ impl Error {
     }
 }
 
-pub trait Project: std::fmt::Debug + Sized + Send + Sync + 'static {
-    type Transaction: Transaction;
+pub trait Project: std::fmt::Debug + Sized + 'static {
+    type Transaction<'a>: Transaction;
 
     fn open(path: &Path) -> Result<Self>;
 
-    fn create(metadata: Metadata) -> Result<Self>;
+    fn create(new_project: NewProject) -> Result<Self>;
 
     fn path(&self) -> Option<&Path>;
 
     fn get_metadata(&self) -> Result<Metadata>;
 
-    fn load_texture(&self) -> Result<Texture<'static>>;
+    fn get_texture(&self) -> Result<Texture<'static>>;
 
     fn save_copy(&self, new_path: &Path) -> Result<Self>;
 
-    fn begin_change(&self) -> Result<Self::Transaction>;
+    fn begin_change(&mut self) -> Result<Self::Transaction<'_>>;
 }
 
-pub trait Transaction: std::fmt::Debug + Sized + 'static {
+pub trait Transaction: std::fmt::Debug + Sized {
     fn update_metadata<F>(&mut self, func: F) -> Result<()>
     where
         F: FnOnce(&mut Metadata);
@@ -53,6 +53,11 @@ pub trait Transaction: std::fmt::Debug + Sized + 'static {
     fn set_texture(&mut self, new_texture: &Texture<'_>) -> Result<()>;
 
     fn commit(self) -> Result<()>;
+}
+
+#[derive(Debug, Clone)]
+pub struct NewProject {
+    pub resolution: UVec2,
 }
 
 #[derive(Debug, Clone)]
@@ -88,6 +93,15 @@ impl Texture<'_> {
                 4 * (resolution.x as usize) * (resolution.y as usize)
             ]),
             row_stride: (resolution.x as usize) * 4,
+        }
+    }
+
+    pub fn make_owned(&self) -> Texture<'static> {
+        Texture {
+            resolution: self.resolution,
+            format: self.format,
+            data: self.data.clone().into_owned().into(),
+            row_stride: self.row_stride,
         }
     }
 }

@@ -90,7 +90,7 @@ impl paint_core::behaviour::Compositor for Compositor {
         pass.draw(0..6, 0..1);
     }
 
-    fn render(&mut self, _ctx: &mut Self::Context) -> Self::Texture {
+    fn get_composite(&mut self, _ctx: &mut Self::Context) -> Self::Texture {
         Texture(self.canvas_texture_view.clone())
     }
 }

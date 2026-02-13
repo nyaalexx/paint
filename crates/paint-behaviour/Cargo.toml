@@ -6,7 +6,11 @@ edition = "2024"
 [dependencies]
 paint-core.path = "../paint-core"
 
+chrono.workspace = true
 futures-lite.workspace = true
 glam.workspace = true
+oneshot.workspace = true
 rayon.workspace = true
+thiserror.workspace = true
 tracing.workspace = true
+async-executor.workspace = true

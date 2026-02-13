@@ -25,6 +25,7 @@ mod ffi {
     }
 }
 
+#[derive(Clone)]
 pub struct Runtime {
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,

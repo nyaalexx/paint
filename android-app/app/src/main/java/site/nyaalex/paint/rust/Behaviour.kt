@@ -1,6 +1,7 @@
 package site.nyaalex.paint.rust
 
 import java.lang.AutoCloseable
+import java.nio.file.Path
 
 class Behaviour(runtime: Runtime) : AutoCloseable {
     private object Native {
@@ -19,6 +20,10 @@ class Behaviour(runtime: Runtime) : AutoCloseable {
         external fun endBrushStroke(ptr: Long)
 
         external fun attachViewportSurface(ptr: Long, surfacePtr: Long)
+
+        external fun save(ptr: Long, path: String)
+
+        external fun open(ptr: Long, path: String)
 
         external fun destroy(ptr: Long)
     }
@@ -44,6 +49,14 @@ class Behaviour(runtime: Runtime) : AutoCloseable {
 
     fun attachViewportSurface(surface: Surface) {
         Native.attachViewportSurface(ptr, surface.ptr)
+    }
+
+    fun save(path: Path) {
+        Native.save(ptr, path.toString())
+    }
+
+    fun open(path: Path) {
+        Native.open(ptr, path.toString())
     }
 
     override fun close() {

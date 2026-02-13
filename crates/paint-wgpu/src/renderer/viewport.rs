@@ -32,7 +32,7 @@ impl ViewportRenderer {
 
     pub fn render(
         &self,
-        mut ctx: FrameContext,
+        ctx: &mut FrameContext,
         target: &wgpu::Texture,
         viewport: &presentation::Viewport<Texture>,
     ) {
@@ -64,10 +64,6 @@ impl ViewportRenderer {
         self.render_canvas_layers(&mut pass, pixel_to_ndc, viewport);
         self.render_canvas_border(&mut pass, pixel_to_ndc, viewport);
         drop(pass);
-
-        // TODO: should finish and submit somewhere outside
-        let command_buffer = ctx.encoder.finish();
-        self.context.queue.submit(std::iter::once(command_buffer));
 
         tracing::trace!("viewport rendering CPU time is {:?}", start_time.elapsed());
     }

@@ -10,9 +10,11 @@ use crate::runtime::Runtime;
 use crate::surface::Surface;
 
 pub mod ffi {
+    use std::path::PathBuf;
+
     use glam::{Affine2, UVec2, Vec2};
     use jni::JNIEnv;
-    use jni::objects::JObject;
+    use jni::objects::{JObject, JString};
     use jni_fn::jni_fn;
 
     use super::*;
@@ -21,7 +23,7 @@ pub mod ffi {
     #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
     pub fn create(_env: JNIEnv, _this: JObject, runtime_ptr: usize) -> usize {
         let runtime = unsafe { &*(runtime_ptr as *const Runtime) };
-        let behaviour = Behaviour::new(runtime);
+        let behaviour = Behaviour::new(runtime.clone());
         Box::into_raw(Box::new(behaviour)) as usize
     }
 
@@ -97,6 +99,22 @@ pub mod ffi {
 
     #[unsafe(no_mangle)]
     #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
+    pub fn save(mut env: JNIEnv, _this: JObject, ptr: usize, path: JString) {
+        let behaviour = unsafe { &*(ptr as *const Behaviour) };
+        let path = PathBuf::from(env.get_string(&path).unwrap().to_str().unwrap());
+        behaviour.handle_event(Event::Save(path));
+    }
+
+    #[unsafe(no_mangle)]
+    #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
+    pub fn open(mut env: JNIEnv, _this: JObject, ptr: usize, path: JString) {
+        let behaviour = unsafe { &*(ptr as *const Behaviour) };
+        let path = PathBuf::from(env.get_string(&path).unwrap().to_str().unwrap());
+        behaviour.handle_event(Event::Open(path));
+    }
+
+    #[unsafe(no_mangle)]
+    #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
     pub fn destroy(_env: JNIEnv, _this: JObject, ptr: usize) {
         unsafe {
             drop(Box::from_raw(ptr as *mut Behaviour));
@@ -107,6 +125,7 @@ pub mod ffi {
 struct Impls;
 
 impl paint_core::behaviour::Impls for Impls {
+    type Project = paint_persistence::Project;
     type Texture = paint_wgpu::Texture;
     type Context = paint_wgpu::FrameContext;
     type Compositor = paint_wgpu::Compositor;
@@ -130,11 +149,11 @@ pub struct Behaviour {
 }
 
 impl Behaviour {
-    pub fn new(runtime: &Runtime) -> Self {
+    pub fn new(runtime: Runtime) -> Self {
         let (command_sender, command_receiver) = mpsc::channel();
 
-        let behaviour_thread = BehaviourThread::new(runtime, command_receiver);
-        let thread_handle = std::thread::spawn(move || behaviour_thread.run());
+        let thread_handle =
+            std::thread::spawn(move || BehaviourThread::new(&runtime, command_receiver).run());
 
         Self {
             thread_handle: Some(thread_handle),
@@ -200,7 +219,7 @@ impl BehaviourThread {
                 self.handle_command(cmd);
             }
 
-            self.perform_actions();
+            self.update();
         }
     }
 
@@ -221,7 +240,10 @@ impl BehaviourThread {
         }
     }
 
-    fn perform_actions(&mut self) {
+    fn update(&mut self) {
+        let ctx = self.frame_context.get_mut();
+        self.behaviour_impl.update(ctx);
+
         loop {
             let ctx = self.frame_context.get_mut();
             let Some(action) = self.behaviour_impl.perform_action(ctx) else {
@@ -240,8 +262,8 @@ impl BehaviourThread {
         };
 
         surface.render(|target| {
-            let ctx = self.frame_context.take();
-            self.viewport_renderer.render(ctx, target, viewport);
+            let mut ctx = self.frame_context.take();
+            self.viewport_renderer.render(&mut ctx, target, viewport);
             tracing::trace!("Rendered viewport");
         });
     }

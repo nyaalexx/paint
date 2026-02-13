@@ -9,6 +9,7 @@ crate-type = ["rlib", "cdylib"]
 [target.'cfg(target_os = "android")'.dependencies]
 paint-behaviour.path = "../paint-behaviour"
 paint-core.path = "../paint-core"
+paint-persistence.path = "../paint-persistence"
 paint-wgpu.path = "../paint-wgpu"
 
 futures-lite.workspace = true

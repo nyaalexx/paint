@@ -6,6 +6,7 @@ members = [ "crates/*" ]
 opt-level = 1
 
 [workspace.dependencies]
+async-executor = "1.13.3"
 chrono = "0.4.42"
 futures-lite = "2.6.1"
 glam = "0.30.9"

@@ -76,9 +76,9 @@ impl ColorPickerRenderer {
     }
 
     pub fn render(&self, surface: &Surface, slice: presentation::ColorPickerSlice) {
-        let ctx = paint_wgpu::FrameContext::new(&self.global_context);
         surface.render(|target| {
-            self.inner.render(ctx, target, slice);
+            let mut ctx = paint_wgpu::FrameContext::new(&self.global_context);
+            self.inner.render(&mut ctx, target, slice);
         });
     }
 }

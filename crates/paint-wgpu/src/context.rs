@@ -1,3 +1,4 @@
+use std::mem::ManuallyDrop;
 use std::sync::Arc;
 
 use crate::{bind_group_layouts, pipeline_layouts, render_pipelines, shaders};
@@ -47,7 +48,7 @@ impl GlobalContext {
 pub struct FrameContext {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
-    pub(crate) encoder: wgpu::CommandEncoder,
+    pub(crate) encoder: ManuallyDrop<wgpu::CommandEncoder>,
 }
 
 impl FrameContext {
@@ -55,9 +56,18 @@ impl FrameContext {
         Self {
             device: ctx.device.clone(),
             queue: ctx.queue.clone(),
-            encoder: ctx.device.create_command_encoder(&Default::default()),
+            encoder: ManuallyDrop::new(ctx.device.create_command_encoder(&Default::default())),
         }
     }
 }
 
 impl paint_core::behaviour::Context for FrameContext {}
+
+impl Drop for FrameContext {
+    fn drop(&mut self) {
+        unsafe {
+            let buf = ManuallyDrop::take(&mut self.encoder).finish();
+            self.queue.submit(std::iter::once(buf));
+        }
+    }
+}

@@ -41,6 +41,9 @@ private class ViewportView(context: Context) : SurfaceView(context) {
 
     fun bind(viewModel: CoreViewModel) {
         this.viewModel = viewModel
+
+        val tempPath = context.cacheDir.toPath().resolve("temp.proj");
+        behaviour?.open(tempPath)
     }
 
     private val behaviour: Behaviour?
@@ -144,6 +147,9 @@ private class ViewportView(context: Context) : SurfaceView(context) {
 
         if (event.actionMasked == MotionEvent.ACTION_UP) {
             behaviour?.endBrushStroke()
+
+            val tempPath = context.cacheDir.toPath().resolve("temp.proj");
+            behaviour?.save(tempPath)
         }
     }
 

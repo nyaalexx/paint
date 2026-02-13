@@ -1,6 +1,9 @@
+use std::path::PathBuf;
+
 use glam::{Affine2, UVec2, Vec2};
 
-use crate::{persistence, presentation};
+use crate::persistence::{self, Project};
+use crate::presentation;
 
 /// App behaviour implementation.
 ///
@@ -29,12 +32,13 @@ pub trait Behaviour {
 
 /// Collection of traits designed to work together, which implement actual
 /// lower level logic.
-pub trait Impls {
+pub trait Impls: 'static {
     type Context: Context;
     type Texture: Texture<Context = Self::Context>;
     type Compositor: Compositor<Context = Self::Context, Texture = Self::Texture>;
     type BrushEngine: BrushEngine<Stroke = Self::BrushStroke>;
     type BrushStroke: BrushStroke<Context = Self::Context, Texture = Self::Texture>;
+    type Project: Project;
 }
 
 pub trait Context {}
@@ -64,6 +68,8 @@ pub enum Event {
     BeginBrushStroke,
     UpdateBrushStroke(BrushState),
     EndBrushStroke,
+    Save(PathBuf),
+    Open(PathBuf),
 }
 
 /// A presentation action.
@@ -107,5 +113,5 @@ pub trait Compositor {
 
     fn put_texture(&mut self, ctx: &mut Self::Context, texture: Self::Texture);
 
-    fn render(&mut self, ctx: &mut Self::Context) -> Self::Texture;
+    fn get_composite(&mut self, ctx: &mut Self::Context) -> Self::Texture;
 }

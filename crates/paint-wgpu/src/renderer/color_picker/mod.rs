@@ -38,7 +38,7 @@ impl ColorPickerRenderer {
 
     pub fn render(
         &self,
-        mut ctx: FrameContext,
+        ctx: &mut FrameContext,
         target: &wgpu::Texture,
         slice: presentation::ColorPickerSlice,
     ) {
@@ -122,10 +122,6 @@ impl ColorPickerRenderer {
         }
 
         drop(pass);
-
-        // TODO: this shouldn't be here
-        let command_buffer = ctx.encoder.finish();
-        self.context.queue.submit(std::iter::once(command_buffer));
     }
 }
 

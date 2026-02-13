@@ -46,9 +46,7 @@ impl paint_core::behaviour::Texture for Texture {
             &texture.data,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(
-                    format.block_copy_size(None).unwrap() * texture.row_stride as u32,
-                ),
+                bytes_per_row: Some(texture.row_stride as u32),
                 rows_per_image: Some(texture.resolution.y),
             },
             size,
