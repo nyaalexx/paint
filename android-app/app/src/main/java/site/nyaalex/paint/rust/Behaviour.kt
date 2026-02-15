@@ -1,5 +1,9 @@
 package site.nyaalex.paint.rust
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
+import site.nyaalex.paint.brush.BrushSettings
 import java.lang.AutoCloseable
 import java.nio.file.Path
 
@@ -10,6 +14,8 @@ class Behaviour(runtime: Runtime) : AutoCloseable {
         }
 
         external fun create(runtimePtr: Long): Long
+
+        external fun getBrushSettings(ptr: Long): String
 
         external fun setViewportTransform(ptr: Long, scale: Float, angle: Float, x: Float, y: Float)
 
@@ -30,6 +36,10 @@ class Behaviour(runtime: Runtime) : AutoCloseable {
 
     internal var ptr: Long = Native.create(runtime.ptr)
         private set
+
+    fun getBrushSettings(): BrushSettings {
+        return Json.decodeFromString(Native.getBrushSettings(ptr));
+    }
 
     fun setViewportTransform(scale: Float, angle: Float, x: Float, y: Float) {
         Native.setViewportTransform(ptr, scale, angle, x, y)

@@ -2,7 +2,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Weak};
 use std::thread::JoinHandle;
 
-use paint_core::behaviour::{Action, BrushState, Event};
+use paint_core::behaviour::{Action, BrushEngine, BrushState, Event};
 use paint_core::presentation;
 use paint_wgpu::Texture;
 
@@ -25,6 +25,14 @@ pub mod ffi {
         let runtime = unsafe { &*(runtime_ptr as *const Runtime) };
         let behaviour = Behaviour::new(runtime.clone());
         Box::into_raw(Box::new(behaviour)) as usize
+    }
+
+    #[unsafe(no_mangle)]
+    #[jni_fn("site.nyaalex.paint.rust.Behaviour$Native")]
+    pub fn getBrushSettings<'env>(env: JNIEnv<'env>, _this: JObject, _ptr: usize) -> JString<'env> {
+        let settings = <Impls as paint_core::behaviour::Impls>::BrushEngine::settings();
+        let str = serde_json::to_string(&settings).unwrap();
+        env.new_string(str).unwrap()
     }
 
     #[unsafe(no_mangle)]

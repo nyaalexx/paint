@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bevy_reflect.workspace = true
 chrono.workspace = true
 glam.workspace = true
 half.workspace = true
+serde.workspace = true
 thiserror.workspace = true

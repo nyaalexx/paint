@@ -17,6 +17,7 @@ glam.workspace = true
 jni.workspace = true
 jni_fn.workspace = true
 ndk = { workspace = true, features = [ "nativewindow" ] }
+serde_json.workspace = true
 tracing-logcat.workspace = true
 tracing-panic.workspace = true
 tracing-subscriber = { workspace = true, features = ["env-filter"] }

@@ -1,4 +1,4 @@
-use chrono::{TimeDelta, Utc};
+use chrono::Utc;
 use glam::UVec2;
 use paint_core::persistence::{Metadata, NewProject, Project as _, Result, Transaction as _};
 use paint_persistence::Project;

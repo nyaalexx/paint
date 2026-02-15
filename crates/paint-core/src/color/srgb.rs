@@ -1,4 +1,7 @@
+use bevy_reflect::Reflect;
+
 use super::{Color, Component};
+use crate::color::WithAlpha;
 
 /// Linear sRGB color.
 ///
@@ -8,7 +11,7 @@ use super::{Color, Component};
 /// When using floating point components, this type can represent all colors,
 /// including HDR (by setting components above 1.0) and WCG (by setting
 /// components below 0.0). Essentially, this is scRGB.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect)]
 pub struct LinearSrgb<T = f32> {
     /// Red channel.
     pub r: T,
@@ -34,6 +37,8 @@ impl<T: Component> Color for LinearSrgb<T> {
         LinearSrgb::new(self.r.as_f32(), self.g.as_f32(), self.b.as_f32())
     }
 }
+
+pub type LinearSrgba<T = f32> = WithAlpha<LinearSrgb<T>>;
 
 /// Nonlinear (gamma-corrected) sRGB color.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -80,6 +85,8 @@ impl<T: Component> Color for NonlinearSrgb<T> {
         LinearSrgb::new(f(self.r), f(self.g), f(self.b))
     }
 }
+
+pub type NonlinearSrgba<T = f32> = WithAlpha<NonlinearSrgb<T>>;
 
 #[cfg(test)]
 mod tests {

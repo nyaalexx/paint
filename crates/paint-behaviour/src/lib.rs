@@ -83,6 +83,7 @@ impl<I: Impls> Behaviour<I> {
             Event::BeginBrushStroke => {
                 self.brush_stroke = Some(self.brush_engine.begin_stroke(&StrokeSettings {
                     canvas_resolution: self.canvas_resolution,
+                    brush_settings: Box::new(()),
                 }));
             }
 
@@ -95,7 +96,7 @@ impl<I: Impls> Behaviour<I> {
 
             Event::EndBrushStroke => {
                 if let Some(mut stroke) = self.brush_stroke.take() {
-                    let stroke_texture = stroke.render(ctx);
+                    let stroke_texture = stroke.get_texture(ctx);
                     self.compositor.put_texture(ctx, stroke_texture);
                     self.viewport_dirty = true;
                 }
@@ -170,7 +171,7 @@ impl<I: Impls> Behaviour<I> {
         layers.push(presentation::Layer::Texture(composite));
 
         if let Some(stroke) = &mut self.brush_stroke {
-            let texture = stroke.render(ctx);
+            let texture = stroke.get_texture(ctx);
             layers.push(presentation::Layer::Texture(texture));
         }
 

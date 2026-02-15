@@ -1,10 +1,11 @@
 mod oklab;
 mod srgb;
 
+use bevy_reflect::Reflect;
 use half::f16;
 
 pub use self::oklab::{Okhsl, Okhsv, Oklab};
-pub use self::srgb::{LinearSrgb, NonlinearSrgb};
+pub use self::srgb::{LinearSrgb, LinearSrgba, NonlinearSrgb, NonlinearSrgba};
 
 /// A color component.
 pub trait Component: Copy + PartialEq + std::fmt::Debug {
@@ -124,7 +125,7 @@ pub trait Color {
 }
 
 /// Color with an alpha channel. Uses straight alpha (non-premultiplied).
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Reflect)]
 pub struct WithAlpha<C, A = f32> {
     /// The color.
     pub color: C,

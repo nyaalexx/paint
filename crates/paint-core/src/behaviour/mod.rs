@@ -1,7 +1,10 @@
+mod brush;
+
 use std::path::PathBuf;
 
-use glam::{Affine2, UVec2, Vec2};
+use glam::{Affine2, UVec2};
 
+pub use self::brush::*;
 use crate::persistence::{self, Project};
 use crate::presentation;
 
@@ -78,33 +81,6 @@ pub enum Event {
 #[derive(Debug, Clone)]
 pub enum Action<I: Impls> {
     PresentViewport(presentation::Viewport<I::Texture>),
-}
-
-pub trait BrushEngine {
-    type Stroke: BrushStroke;
-
-    fn begin_stroke(&self, settings: &StrokeSettings) -> Self::Stroke;
-}
-
-pub trait BrushStroke {
-    type Texture: Texture;
-    type Context: Context;
-
-    fn update(&mut self, state: &BrushState);
-
-    fn render(&mut self, ctx: &mut Self::Context) -> Self::Texture;
-}
-
-#[derive(Debug, Clone)]
-pub struct StrokeSettings {
-    pub canvas_resolution: UVec2,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct BrushState {
-    pub position: Vec2,
-    pub pressure: f32,
-    // TODO: tilt, orientation
 }
 
 pub trait Compositor {

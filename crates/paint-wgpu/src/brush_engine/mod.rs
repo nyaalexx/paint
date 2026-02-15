@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use bevy_reflect::Reflect;
 use glam::{Affine2, Vec2};
-use paint_core::behaviour::{BrushState, StrokeSettings};
+use paint_core::behaviour::{BrushSettings, BrushState, StrokeSettings};
+use paint_core::color::LinearSrgba;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use wgpu::util::DeviceExt;
@@ -11,6 +13,13 @@ use crate::context::{FrameContext, GlobalContext};
 use crate::render_pipelines;
 use crate::render_pipelines::stamped_brush::{Immediates, Instance};
 use crate::texture::Texture;
+
+#[derive(Reflect)]
+pub struct Settings {
+    #[reflect(@0f32..=1000.0)]
+    pub size: f32,
+    pub color: LinearSrgba,
+}
 
 pub struct BrushEngine {
     context: Arc<GlobalContext>,
@@ -24,6 +33,10 @@ impl BrushEngine {
 
 impl paint_core::behaviour::BrushEngine for BrushEngine {
     type Stroke = BrushStroke;
+
+    fn settings() -> BrushSettings {
+        BrushSettings::new::<Settings>()
+    }
 
     fn begin_stroke(&self, settings: &StrokeSettings) -> Self::Stroke {
         BrushStroke::new(self.context.clone(), settings)
@@ -111,7 +124,7 @@ impl paint_core::behaviour::BrushStroke for BrushStroke {
         self.last_instance = Some(instance);
     }
 
-    fn render(&mut self, ctx: &mut FrameContext) -> Texture {
+    fn get_texture(&mut self, ctx: &mut FrameContext) -> Texture {
         let resolution = self.preview_texture.size();
         let resolution = Vec2::new(resolution.width as f32, resolution.height as f32);
 

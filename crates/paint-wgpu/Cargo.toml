@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 paint-core.path = "../paint-core"
 
+bevy_reflect.workspace = true
 glam = { workspace = true, features = ["zerocopy"] }
 oneshot.workspace = true
 rand.workspace = true

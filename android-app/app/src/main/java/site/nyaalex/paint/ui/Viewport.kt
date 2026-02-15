@@ -150,6 +150,13 @@ private class ViewportView(context: Context) : SurfaceView(context) {
 
             val tempPath = context.cacheDir.toPath().resolve("temp.proj");
             behaviour?.save(tempPath)
+
+            behaviour?.let { behaviour ->
+                Log.d(
+                    "Brush",
+                    "setting=${behaviour.getBrushSettings()}"
+                )
+            }
         }
     }
 
